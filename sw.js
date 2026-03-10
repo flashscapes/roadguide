@@ -1,5 +1,9 @@
 const CACHE = 'skyguide-v3';
-const CORE = ['/', '/index.html',
+const CORE = [
+  '/skyGuide/',
+  '/skyGuide/index.html',
+  '/skyGuide/icon-192.png',
+  '/skyGuide/icon-512.png',
   'https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&family=DM+Mono:wght@300;400&display=swap'
 ];
 
@@ -20,10 +24,9 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  // Cache-first for core assets and images; network-first for everything else
-  const url = new URL(e.request.url);
   const isImage = e.request.destination === 'image';
-  const isCore = CORE.includes(e.request.url) || url.pathname === '/' || url.pathname === '/index.html';
+  const url = new URL(e.request.url);
+  const isCore = url.pathname.startsWith('/skyGuide/');
 
   if (isImage || isCore) {
     e.respondWith(

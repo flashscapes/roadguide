@@ -1,4 +1,4 @@
-const CACHE = 'skyguide-v2';
+const CACHE = 'skyguide-v3';
 const CORE = ['/', '/index.html',
   'https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&family=DM+Mono:wght@300;400&display=swap'
 ];

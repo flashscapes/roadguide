@@ -5,1203 +5,230 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="SkyGuide">
+  <meta name="apple-mobile-web-app-title" content="RoadGuide">
   <meta name="theme-color" content="#0a0e1a">
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png">
-  <link rel="apple-touch-icon" sizes="512x512" href="icon-512.png">
-  <title>SkyGuide — California from Above</title>
+  <title>RoadGuide — California</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
   <style>
-    :root {
-      --sky-dark: #0a0e1a;
-      --sky-mid: #0f1829;
-      --sky-blue: #1a2a4a;
-      --gold: #c9a84c;
-      --gold-light: #e8c97a;
-      --gold-dim: #7a6030;
-      --white: #f0f4ff;
-      --white-dim: #8090b0;
-      --red: #e05050;
-      --green: #4caf80;
-      --card-bg: rgba(255,255,255,0.04);
-      --card-border: rgba(255,255,255,0.08);
-    }
-    * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-    html, body {
-      width:100%; height:100%;
-      background:var(--sky-dark);
-      color:var(--white);
-      font-family:'DM Sans',sans-serif;
-      overflow:hidden; position:fixed;
-    }
-    #stars {
-      position:fixed; inset:0; pointer-events:none; z-index:0;
-      background:
-        radial-gradient(ellipse at 20% 20%, rgba(26,42,74,0.8) 0%, transparent 60%),
-        radial-gradient(ellipse at 80% 80%, rgba(15,24,41,0.9) 0%, transparent 60%),
-        var(--sky-dark);
-    }
-    #stars::before {
-      content:''; position:absolute; inset:0;
-      background-image:
-        radial-gradient(1px 1px at 10% 15%, rgba(255,255,255,0.6) 0%, transparent 100%),
-        radial-gradient(1px 1px at 25% 40%, rgba(255,255,255,0.4) 0%, transparent 100%),
-        radial-gradient(1px 1px at 40% 10%, rgba(255,255,255,0.5) 0%, transparent 100%),
-        radial-gradient(1px 1px at 55% 60%, rgba(255,255,255,0.3) 0%, transparent 100%),
-        radial-gradient(1px 1px at 70% 25%, rgba(255,255,255,0.6) 0%, transparent 100%),
-        radial-gradient(1px 1px at 85% 50%, rgba(255,255,255,0.4) 0%, transparent 100%),
-        radial-gradient(1px 1px at 15% 70%, rgba(255,255,255,0.5) 0%, transparent 100%),
-        radial-gradient(1px 1px at 90% 80%, rgba(255,255,255,0.3) 0%, transparent 100%),
-        radial-gradient(1.5px 1.5px at 33% 85%, rgba(255,255,255,0.5) 0%, transparent 100%),
-        radial-gradient(1px 1px at 60% 90%, rgba(255,255,255,0.4) 0%, transparent 100%),
-        radial-gradient(1px 1px at 78% 5%, rgba(255,255,255,0.6) 0%, transparent 100%),
-        radial-gradient(1px 1px at 5% 50%, rgba(255,255,255,0.3) 0%, transparent 100%),
-        radial-gradient(1.5px 1.5px at 48% 35%, rgba(201,168,76,0.4) 0%, transparent 100%),
-        radial-gradient(1px 1px at 92% 42%, rgba(255,255,255,0.5) 0%, transparent 100%),
-        radial-gradient(1px 1px at 18% 92%, rgba(255,255,255,0.4) 0%, transparent 100%);
-    }
-    #app {
-      position:relative; z-index:1;
-      width:100%; height:100%;
-      display:flex; flex-direction:column;
-      overflow:hidden;
-    }
-    header {
-      padding:52px 24px 14px;
-      display:flex; align-items:flex-end; justify-content:space-between;
-      flex-shrink:0;
-      border-bottom:1px solid rgba(255,255,255,0.05);
-    }
-    .logo-title {
-      font-family:'Bebas Neue',sans-serif;
-      font-size:36px; letter-spacing:4px; color:var(--white); line-height:1;
-    }
-    .logo-sub {
-      font-family:'DM Mono',monospace;
-      font-size:9px; letter-spacing:3px; color:var(--gold);
-      text-transform:uppercase; margin-top:2px;
-    }
-    .header-right { text-align:right; }
-    .lm-count {
-      font-family:'DM Mono',monospace; font-size:9px;
-      letter-spacing:2px; color:var(--white-dim); text-transform:uppercase;
-    }
-    .lm-count span { display:block; font-size:22px; color:var(--gold-light); font-family:'Bebas Neue',sans-serif; letter-spacing:2px; }
-
-    /* auto-refresh countdown */
-    #refreshBar {
-      height:3px; background:rgba(255,255,255,0.06);
-      flex-shrink:0; position:relative; overflow:hidden;
-    }
-    #refreshFill {
-      position:absolute; left:0; top:0; height:100%;
-      background:linear-gradient(90deg, var(--gold-dim), var(--gold));
-      width:100%;
-      transition:width 1s linear;
-    }
-
-    #scroll {
-      flex:1; overflow-y:auto; overflow-x:hidden;
-      -webkit-overflow-scrolling:touch;
-      padding:0 18px 60px;
-    }
-    #scroll::-webkit-scrollbar { display:none; }
-
-    /* status strip */
-    .status-strip {
-      display:flex; align-items:center; gap:8px;
-      padding:9px 14px;
-      background:var(--card-bg);
-      border:1px solid var(--card-border);
-      border-radius:10px; margin:14px 0 16px;
-      font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.5px;
-    }
-    .status-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
-    .status-dot.idle { background:var(--white-dim); }
-    .status-dot.scanning { background:var(--gold); animation:pulse 1.2s ease-in-out infinite; }
-    .status-dot.found { background:var(--green); }
-    .status-dot.error { background:var(--red); }
-    @keyframes pulse {
-      0%,100%{opacity:1;transform:scale(1);}
-      50%{opacity:0.4;transform:scale(0.7);}
-    }
-    .status-text { color:var(--white-dim); flex:1; }
-    #nextScanLabel {
-      font-family:'DM Mono',monospace; font-size:9px;
-      color:var(--gold-dim); white-space:nowrap;
-    }
-
-    /* scan button */
-    .scan-wrap { display:flex; justify-content:center; margin:4px 0 22px; }
-    #scanBtn {
-      position:relative; width:160px; height:160px;
-      border-radius:50%; border:none; cursor:pointer; background:none; -webkit-appearance:none;
-    }
-    .btn-ring {
-      position:absolute; inset:0; border-radius:50%;
-      border:2px solid rgba(201,168,76,0.25); transition:border-color 0.3s;
-    }
-    .btn-ring-2 { position:absolute; inset:10px; border-radius:50%; border:1px solid rgba(201,168,76,0.12); }
-    .btn-core {
-      position:absolute; inset:20px; border-radius:50%;
-      background:linear-gradient(145deg,rgba(201,168,76,0.12),rgba(201,168,76,0.04));
-      border:1.5px solid rgba(201,168,76,0.35);
-      display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
-      transition:all 0.2s;
-    }
-    #scanBtn:active .btn-core { background:linear-gradient(145deg,rgba(201,168,76,0.28),rgba(201,168,76,0.1)); transform:scale(0.97); }
-    #scanBtn.scanning .btn-ring { border-color:rgba(201,168,76,0.6); animation:spin 3s linear infinite; }
-    @keyframes spin { from{transform:rotate(0deg);}to{transform:rotate(360deg);} }
-    .btn-icon { font-size:30px; line-height:1; }
-    .btn-label { font-family:'Bebas Neue',sans-serif; font-size:14px; letter-spacing:3px; color:var(--gold-light); }
-    .btn-sub { font-family:'DM Mono',monospace; font-size:8px; letter-spacing:1px; color:var(--gold-dim); text-transform:uppercase; }
-
-    /* result card */
-    #resultCard {
-      display:none;
-      border-radius:20px; overflow:hidden;
-      margin-bottom:20px;
-      border:1px solid rgba(201,168,76,0.25);
-      animation:cardIn 0.5s cubic-bezier(0.16,1,0.3,1);
-    }
-    #resultCard.visible { display:block; }
-    @keyframes cardIn {
-      from{opacity:0;transform:translateY(16px) scale(0.97);}
-      to{opacity:1;transform:translateY(0) scale(1);}
-    }
-    .card-photo {
-      width:100%; height:160px; object-fit:cover;
-      display:block; background:#1a2a4a;
-    }
-    .card-photo-placeholder {
-      width:100%; height:160px;
-      display:flex; align-items:center; justify-content:center;
-      font-size:60px;
-      background:linear-gradient(135deg, rgba(201,168,76,0.08), rgba(26,42,74,0.8));
-    }
-    .card-inner {
-      background:linear-gradient(135deg,rgba(201,168,76,0.07) 0%,rgba(255,255,255,0.02) 100%);
-      padding:16px 18px 18px;
-    }
-    .card-top-row {
-      display:flex; align-items:flex-start; justify-content:space-between; gap:12px;
-      margin-bottom:10px;
-    }
-    .card-title-block { flex:1; min-width:0; }
-    .card-label {
-      font-family:'DM Mono',monospace; font-size:9px; letter-spacing:3px;
-      color:var(--gold); text-transform:uppercase; margin-bottom:3px;
-    }
-    .card-name {
-      font-family:'Bebas Neue',sans-serif; font-size:28px; letter-spacing:1px;
-      color:var(--white); line-height:1.05;
-    }
-    .card-meta {
-      font-family:'DM Mono',monospace; font-size:10px;
-      color:var(--white-dim); margin-top:3px;
-    }
-    .card-meta strong { color:var(--gold-light); font-weight:400; }
-
-    /* compass widget */
-    .compass-wrap {
-      flex-shrink:0;
-      display:flex; flex-direction:column; align-items:center; gap:3px;
-    }
-    .compass {
-      width:56px; height:56px; border-radius:50%;
-      border:1.5px solid rgba(201,168,76,0.3);
-      background:radial-gradient(circle, rgba(201,168,76,0.06) 0%, rgba(10,14,26,0.8) 100%);
-      position:relative; display:flex; align-items:center; justify-content:center;
-    }
-    .compass-needle {
-      width:2px; height:40px;
-      position:absolute; top:50%; left:50%;
-      transform-origin:bottom center;
-      margin-left:-1px; margin-top:-40px;
-    }
-    .compass-needle-north {
-      width:0; height:0;
-      border-left:4px solid transparent;
-      border-right:4px solid transparent;
-      border-bottom:20px solid var(--gold);
-      position:absolute; top:0; left:50%; transform:translateX(-50%);
-    }
-    .compass-needle-south {
-      width:0; height:0;
-      border-left:4px solid transparent;
-      border-right:4px solid transparent;
-      border-top:20px solid rgba(255,255,255,0.2);
-      position:absolute; bottom:0; left:50%; transform:translateX(-50%);
-    }
-    .compass-dir {
-      font-family:'Bebas Neue',sans-serif; font-size:18px;
-      color:var(--gold-light); letter-spacing:1px;
-    }
-    .compass-deg {
-      font-family:'DM Mono',monospace; font-size:8px;
-      color:var(--white-dim);
-    }
-
-    .card-fact {
-      font-size:14px; line-height:1.7; font-weight:300;
-      color:var(--white); border-top:1px solid rgba(255,255,255,0.06);
-      padding-top:12px;
-    }
-    .card-fact em { color:var(--gold-light); font-style:normal; font-weight:500; }
-
-    /* nearby list */
-    .section-label {
-      font-family:'DM Mono',monospace; font-size:9px; letter-spacing:3px;
-      color:var(--white-dim); text-transform:uppercase; margin-bottom:10px;
-    }
-    #nearbyList { display:flex; flex-direction:column; gap:8px; margin-bottom:20px; }
-    .nearby-item {
-      display:flex; align-items:center; gap:12px;
-      padding:10px 14px;
-      background:var(--card-bg);
-      border:1px solid var(--card-border);
-      border-radius:12px; cursor:pointer; transition:all 0.2s;
-    }
-    .nearby-item:active { background:rgba(201,168,76,0.08); border-color:rgba(201,168,76,0.2); }
-    .nearby-thumb {
-      width:44px; height:44px; border-radius:8px;
-      object-fit:cover; flex-shrink:0;
-      background:rgba(201,168,76,0.08);
-    }
-    .nearby-thumb-emoji {
-      width:44px; height:44px; border-radius:8px;
-      display:flex; align-items:center; justify-content:center;
-      font-size:22px; flex-shrink:0;
-      background:rgba(201,168,76,0.06);
-    }
-    .nearby-info { flex:1; min-width:0; }
-    .nearby-name { font-size:13px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .nearby-meta {
-      font-family:'DM Mono',monospace; font-size:10px;
-      color:var(--white-dim); margin-top:2px;
-    }
-    .nearby-bearing {
-      font-family:'DM Mono',monospace; font-size:11px;
-      color:var(--gold-dim); flex-shrink:0; text-align:right;
-    }
-
-    /* offline / install */
-    #offlineBanner {
-      display:none; margin:10px 0;
-      padding:9px 14px;
-      background:rgba(76,175,128,0.1);
-      border:1px solid rgba(76,175,128,0.3);
-      border-radius:10px;
-      font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.5px; color:var(--green);
-    }
-    #offlineBanner.show { display:flex; align-items:center; gap:8px; }
-
-    #installPrompt {
-      display:none; margin:10px 0;
-      padding:14px 16px;
-      background:rgba(201,168,76,0.05);
-      border:1px solid rgba(201,168,76,0.18);
-      border-radius:14px;
-    }
-    #installPrompt.show { display:block; }
-    .install-title { font-family:'Bebas Neue',sans-serif; font-size:15px; letter-spacing:2px; color:var(--gold-light); margin-bottom:4px; }
-    .install-body { font-size:12px; font-weight:300; color:var(--white-dim); line-height:1.5; }
-    #installBtn {
-      margin-top:8px; padding:7px 16px;
-      background:rgba(201,168,76,0.12);
-      border:1px solid rgba(201,168,76,0.35);
-      border-radius:8px; color:var(--gold-light);
-      font-family:'DM Mono',monospace; font-size:10px; letter-spacing:1px; cursor:pointer;
-    }
-
-    /* GPS readout */
-    #gpsReadout {
-      padding:9px 14px;
-      background:var(--card-bg); border:1px solid var(--card-border);
-      border-radius:10px; margin-top:4px;
-      font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.5px;
-      color:var(--white-dim); display:flex; gap:10px; flex-wrap:wrap;
-    }
-    .horizon-line {
-      width:100%; height:1px;
-      background:linear-gradient(90deg,transparent,rgba(201,168,76,0.2),transparent);
-      margin:16px 0;
-    }
-
-    /* ── Flight Panel ── */
-    #flightPanel {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius:16px; padding:14px 16px;
-      margin-bottom:16px;
-    }
-    .fp-header {
-      display:flex; align-items:center; justify-content:space-between;
-      margin-bottom:12px;
-    }
-    .fp-title {
-      font-family:'DM Mono',monospace; font-size:9px;
-      letter-spacing:3px; color:var(--gold); text-transform:uppercase;
-    }
-    .fp-toggle {
-      font-family:'DM Mono',monospace; font-size:9px;
-      color:var(--white-dim); cursor:pointer; letter-spacing:1px;
-      background:none; border:none; color:var(--white-dim);
-      padding:2px 6px;
-    }
-    .fp-row {
-      display:grid; grid-template-columns:1fr 1fr; gap:10px;
-      margin-bottom:10px;
-    }
-    .fp-field { display:flex; flex-direction:column; gap:4px; }
-    .fp-label {
-      font-family:'DM Mono',monospace; font-size:9px;
-      letter-spacing:1px; color:var(--white-dim); text-transform:uppercase;
-    }
-    .fp-input-wrap {
-      display:flex; align-items:center; gap:6px;
-      background:rgba(255,255,255,0.06);
-      border:1px solid rgba(255,255,255,0.1);
-      border-radius:8px; padding:0 10px; height:38px;
-    }
-    .fp-input-wrap:focus-within {
-      border-color:rgba(201,168,76,0.4);
-    }
-    .fp-input {
-      background:none; border:none; outline:none;
-      color:var(--white); font-family:'DM Mono',monospace;
-      font-size:16px; width:100%; text-align:center;
-      -webkit-appearance:none;
-    }
-    .fp-unit {
-      font-family:'DM Mono',monospace; font-size:10px;
-      color:var(--gold-dim); flex-shrink:0;
-    }
-
-    /* heading dial */
-    .fp-heading-wrap {
-      display:flex; align-items:center; gap:14px;
-    }
-    .fp-dial-container { position:relative; flex-shrink:0; }
-    .fp-dial {
-      width:72px; height:72px; border-radius:50%;
-      border:1.5px solid rgba(201,168,76,0.25);
-      background:radial-gradient(circle, rgba(201,168,76,0.05) 0%, rgba(10,14,26,0.9) 100%);
-      position:relative; cursor:pointer;
-      touch-action:none;
-    }
-    .fp-dial-plane {
-      position:absolute; top:50%; left:50%;
-      width:24px; height:24px;
-      transform:translate(-50%,-50%);
-      font-size:22px; line-height:1;
-      display:flex; align-items:center; justify-content:center;
-      pointer-events:none;
-      transition:transform 0.15s ease;
-    }
-    .fp-dial-tick {
-      position:absolute; top:3px; left:50%; width:2px; height:8px;
-      background:var(--gold); border-radius:1px;
-      transform-origin:bottom center;
-      margin-left:-1px;
-    }
-    .fp-dial-n {
-      position:absolute; top:5px; left:50%;
-      transform:translateX(-50%);
-      font-family:'Bebas Neue',sans-serif; font-size:10px;
-      color:var(--gold); pointer-events:none;
-    }
-    .fp-heading-info { flex:1; }
-    .fp-heading-big {
-      font-family:'Bebas Neue',sans-serif; font-size:36px;
-      letter-spacing:2px; color:var(--white); line-height:1;
-    }
-    .fp-heading-dir {
-      font-family:'DM Mono',monospace; font-size:11px;
-      color:var(--gold-light); margin-top:2px;
-    }
-    .fp-heading-hint {
-      font-family:'DM Mono',monospace; font-size:9px;
-      color:var(--white-dim); margin-top:4px; line-height:1.4;
-    }
-
-    /* ETA ribbon on card */
-    .card-eta {
-      display:none;
-      margin: 0 -18px;
-      padding:10px 18px;
-      background:linear-gradient(90deg, rgba(201,168,76,0.12), rgba(201,168,76,0.04));
-      border-top:1px solid rgba(201,168,76,0.2);
-      border-bottom:1px solid rgba(201,168,76,0.1);
-    }
-    .card-eta.show { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
-    .eta-block { display:flex; flex-direction:column; }
-    .eta-label {
-      font-family:'DM Mono',monospace; font-size:8px;
-      letter-spacing:2px; color:var(--gold-dim); text-transform:uppercase;
-    }
-    .eta-value {
-      font-family:'Bebas Neue',sans-serif; font-size:24px;
-      letter-spacing:1px; color:var(--gold-light); line-height:1.1;
-    }
-    .eta-sep {
-      width:1px; height:36px; background:rgba(201,168,76,0.2);
-      flex-shrink:0; margin:0 2px;
-    }
-    .eta-approach {
-      font-family:'DM Mono',monospace; font-size:10px;
-      color:var(--white-dim); flex:1; line-height:1.5;
-    }
-    .eta-approach strong { color:var(--white); }
-
-    /* nearby ETA badge */
-    .nearby-eta {
-      font-family:'DM Mono',monospace; font-size:9px;
-      color:var(--gold); margin-top:1px;
-    }
-    /* ETA ribbon on card */
-    .card-eta {
-      display:none;
-      margin: 12px -18px -18px;
-      padding:12px 18px;
-      background:linear-gradient(90deg, rgba(201,168,76,0.1), rgba(201,168,76,0.03));
-      border-top:1px solid rgba(201,168,76,0.2);
-      border-radius:0 0 0 0;
-      gap:10px; flex-wrap:wrap; align-items:center;
-    }
-    .card-eta.show { display:flex; }
-    .eta-block { display:flex; flex-direction:column; }
-    .eta-label {
-      font-family:'DM Mono',monospace; font-size:8px;
-      letter-spacing:2px; color:var(--gold-dim); text-transform:uppercase;
-    }
-    .eta-value {
-      font-family:'Bebas Neue',sans-serif; font-size:26px;
-      letter-spacing:1px; color:var(--gold-light); line-height:1.1;
-    }
-    .eta-sep { width:1px; height:36px; background:rgba(201,168,76,0.2); flex-shrink:0; }
-    .eta-approach {
-      font-family:'DM Mono',monospace; font-size:10px;
-      color:var(--white-dim); flex:1; line-height:1.6; min-width:100px;
-    }
-    .eta-approach strong { color:var(--white); }
+    :root{--dark:#0a0e1a;--gold:#c9a84c;--gold-light:#e8c97a;--gold-dim:#7a6030;--white:#f0f4ff;--dim:#8090b0;--green:#4caf80;--red:#e05050;--cb:rgba(255,255,255,.04);--cbr:rgba(255,255,255,.08);}
+    *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+    html,body{width:100%;height:100%;background:var(--dark);color:var(--white);font-family:'DM Sans',sans-serif;overflow:hidden;position:fixed;}
+    #bg{position:fixed;inset:0;z-index:0;background:radial-gradient(ellipse at 20% 20%,rgba(26,42,74,.8) 0%,transparent 60%),radial-gradient(ellipse at 80% 80%,rgba(15,24,41,.9) 0%,transparent 60%),var(--dark);}
+    #bg::before{content:'';position:absolute;inset:0;background-image:radial-gradient(1px 1px at 10% 15%,rgba(255,255,255,.5) 0%,transparent 100%),radial-gradient(1px 1px at 30% 40%,rgba(255,255,255,.3) 0%,transparent 100%),radial-gradient(1px 1px at 55% 10%,rgba(255,255,255,.4) 0%,transparent 100%),radial-gradient(1px 1px at 75% 60%,rgba(255,255,255,.3) 0%,transparent 100%),radial-gradient(1.5px 1.5px at 45% 80%,rgba(201,168,76,.35) 0%,transparent 100%),radial-gradient(1px 1px at 88% 25%,rgba(255,255,255,.4) 0%,transparent 100%);}
+    #app{position:relative;z-index:1;width:100%;height:100%;display:flex;flex-direction:column;overflow:hidden;}
+    header{padding:48px 20px 12px;display:flex;align-items:flex-end;justify-content:space-between;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.05);}
+    .logo{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:4px;line-height:1;}
+    .logo-sub{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:3px;color:var(--gold);text-transform:uppercase;margin-top:2px;}
+    .hst{text-align:right;}
+    .hst p{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1px;color:var(--dim);}
+    .hst span{color:var(--gold-light);font-size:14px;font-family:'Bebas Neue',sans-serif;letter-spacing:2px;}
+    #bar{height:3px;background:rgba(255,255,255,.05);flex-shrink:0;position:relative;overflow:hidden;}
+    #bf{position:absolute;left:0;top:0;height:100%;background:linear-gradient(90deg,var(--gold-dim),var(--gold));width:100%;transition:width 1s linear;}
+    #scr{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding:0 16px 100px;}
+    #scr::-webkit-scrollbar{display:none;}
+    .dw{display:flex;justify-content:center;padding:18px 0 10px;}
+    #btn{display:flex;align-items:center;gap:12px;padding:16px 36px;border-radius:50px;border:1.5px solid rgba(201,168,76,.4);background:linear-gradient(135deg,rgba(201,168,76,.1),rgba(201,168,76,.03));cursor:pointer;transition:all .25s;-webkit-appearance:none;}
+    #btn.on{background:linear-gradient(135deg,rgba(76,175,128,.15),rgba(76,175,128,.04));border-color:rgba(76,175,128,.55);}
+    #btn:active{transform:scale(.97);}
+    .bi{font-size:26px;}
+    .bt{display:flex;flex-direction:column;}
+    .bl{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:3px;color:var(--gold-light);}
+    #btn.on .bl{color:#6ecf9c;}
+    .bs{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:1px;color:var(--gold-dim);text-transform:uppercase;}
+    #btn.on .bs{color:rgba(76,175,128,.6);}
+    .st{display:flex;align-items:center;gap:8px;padding:9px 14px;background:var(--cb);border:1px solid var(--cbr);border-radius:10px;margin:8px 0;font-family:'DM Mono',monospace;font-size:10px;}
+    .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+    .dot.i{background:var(--dim);}
+    .dot.s{background:var(--gold);animation:p 1.2s ease-in-out infinite;}
+    .dot.a{background:var(--green);animation:p 2s ease-in-out infinite;}
+    .dot.e{background:var(--red);}
+    @keyframes p{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.4;transform:scale(.7);}}
+    .sm{color:var(--dim);flex:1;}
+    #tmr{font-family:'DM Mono',monospace;font-size:9px;color:var(--gold-dim);}
+    .sl{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:3px;color:var(--dim);text-transform:uppercase;margin:12px 0 8px;}
+    #lst{display:flex;flex-direction:column;gap:8px;}
+    .li{display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--cb);border:1px solid var(--cbr);border-radius:12px;cursor:pointer;transition:all .2s;}
+    .li:active{background:rgba(201,168,76,.08);border-color:rgba(201,168,76,.25);}
+    .li.seen{opacity:.4;}
+    .lt{width:44px;height:44px;border-radius:8px;object-fit:cover;flex-shrink:0;background:rgba(201,168,76,.06);}
+    .le{width:44px;height:44px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;background:rgba(201,168,76,.06);}
+    .li-i{flex:1;min-width:0;}
+    .li-n{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .li-c{font-family:'DM Mono',monospace;font-size:10px;color:var(--dim);margin-top:2px;}
+    .li-co{font-family:'DM Mono',monospace;font-size:9px;color:var(--gold-dim);margin-top:1px;}
+    .li-r{text-align:right;flex-shrink:0;}
+    .li-d{font-family:'DM Mono',monospace;font-size:11px;color:var(--gold-light);}
+    .li-b{font-family:'DM Mono',monospace;font-size:9px;color:var(--dim);}
+    #gps{padding:8px 14px;background:var(--cb);border:1px solid var(--cbr);border-radius:10px;margin-top:12px;font-family:'DM Mono',monospace;font-size:10px;color:var(--dim);display:flex;gap:10px;flex-wrap:wrap;}
+    #pop{position:fixed;top:0;left:0;right:0;z-index:200;transform:translateY(-110%);transition:transform .5s cubic-bezier(.16,1,.3,1);pointer-events:none;padding:10px 12px 0;}
+    #pop.show{transform:translateY(0);pointer-events:all;}
+    .pc{background:linear-gradient(160deg,rgba(15,24,41,.98),rgba(10,14,26,.99));border:1px solid rgba(201,168,76,.4);border-radius:20px;overflow:hidden;box-shadow:0 12px 60px rgba(0,0,0,.7);}
+    #pp{width:100%;height:145px;object-fit:cover;display:block;}
+    #pe{width:100%;height:145px;display:none;align-items:center;justify-content:center;font-size:60px;background:linear-gradient(135deg,rgba(201,168,76,.1),rgba(26,42,74,.9));}
+    .pb{padding:14px 16px 16px;}
+    .pt{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px;}
+    .ptl{flex:1;}
+    .ptag{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:3px;color:var(--gold);text-transform:uppercase;margin-bottom:2px;}
+    .pnm{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:1px;line-height:1;}
+    .pds{font-family:'DM Mono',monospace;font-size:10px;color:var(--dim);margin-top:3px;}
+    .pds b{color:var(--gold-light);font-weight:400;}
+    #px{width:30px;height:30px;border-radius:50%;flex-shrink:0;margin-top:2px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--dim);cursor:pointer;-webkit-appearance:none;}
+    .pf{font-size:13px;line-height:1.65;font-weight:300;}
+    .pf em{color:var(--gold-light);font-style:normal;font-weight:500;}
+    .pg{height:3px;background:rgba(255,255,255,.08);margin-top:12px;border-radius:2px;overflow:hidden;}
+    #pgb{height:100%;background:var(--gold);width:100%;transition:width .5s linear;}
+    .hdiv{width:100%;height:1px;background:linear-gradient(90deg,transparent,rgba(201,168,76,.2),transparent);margin:14px 0;}
   </style>
 </head>
 <body>
-<div id="stars"></div>
-<div id="app">
-  <header>
-    <div class="logo">
-      <div class="logo-title">SkyGuide</div>
-      <div class="logo-sub">California from Above</div>
-    </div>
-    <div class="header-right">
-      <div class="lm-count">Landmarks<span id="landmarkCount">—</span></div>
-    </div>
-  </header>
-
-  <div id="refreshBar"><div id="refreshFill"></div></div>
-
-  <div id="scroll">
-
-    <div id="offlineBanner"><span>●</span> OFFLINE MODE — GPS still active</div>
-    <div id="installPrompt">
-      <div class="install-title">✈ Add to Home Screen</div>
-      <div class="install-body">Install SkyGuide once on WiFi before your flight. Opens fully offline in Airplane Mode — no internet needed.</div>
-      <button id="installBtn">INSTALL APP</button>
-    </div>
-
-    <div class="status-strip">
-      <div class="status-dot idle" id="statusDot"></div>
-      <div class="status-text" id="statusText">Tap to find what's beneath you</div>
-      <div id="nextScanLabel"></div>
-    </div>
-
-    <div class="scan-wrap">
-      <button id="scanBtn" onclick="startScan()">
-        <div class="btn-ring"></div>
-        <div class="btn-ring-2"></div>
-        <div class="btn-core">
-          <div class="btn-icon">✈️</div>
-          <div class="btn-label">What's Below</div>
-          <div class="btn-sub">Tap to scan</div>
+<div id="bg"></div>
+<div id="pop">
+  <div class="pc">
+    <img id="pp" src="" alt="" onerror="this.style.display='none';document.getElementById('pe').style.display='flex'">
+    <div id="pe"></div>
+    <div class="pb">
+      <div class="pt">
+        <div class="ptl">
+          <div class="ptag" id="ptag">Nearby</div>
+          <div class="pnm" id="pnm">—</div>
+          <div class="pds" id="pds">—</div>
         </div>
-      </button>
-    </div>
-
-    <div id="resultCard">
-      <div id="cardPhotoWrap"></div>
-      <div class="card-inner">
-        <div class="card-top-row">
-          <div class="card-title-block">
-            <div class="card-label">Nearest Landmark</div>
-            <div class="card-name" id="cardName">—</div>
-            <div class="card-meta" id="cardMeta">—</div>
-          </div>
-          <div class="compass-wrap">
-            <div class="compass">
-              <div class="compass-needle" id="compassNeedle">
-                <div class="compass-needle-north"></div>
-                <div class="compass-needle-south"></div>
-              </div>
-            </div>
-            <div class="compass-dir" id="compassDir">—</div>
-            <div class="compass-deg" id="compassDeg">—°</div>
-          </div>
-        </div>
-        <div class="card-fact" id="cardFact">—</div>
-        <div class="card-eta" id="cardETA"></div>
+        <button id="px" onclick="dismiss()">✕</button>
       </div>
-    </div>
-
-    <div id="nearbySection" style="display:none">
-      <div class="section-label">Also Nearby</div>
-      <div id="nearbyList"></div>
-    </div>
-
-    <div class="horizon-line"></div>
-    <div id="gpsReadout">
-      <span id="gpsLat">LAT —</span>
-      <span id="gpsLon">LON —</span>
-      <span id="gpsAcc">ACC —</span>
+      <div class="pf" id="pf">—</div>
+      <div class="pg"><div id="pgb"></div></div>
     </div>
   </div>
 </div>
-
+<div id="app">
+  <header>
+    <div><div class="logo">RoadGuide</div><div class="logo-sub">California Explorer</div></div>
+    <div class="hst">
+      <p>LANDMARKS <span id="tc">—</span></p>
+      <p>DISCOVERED <span id="sc">0</span></p>
+    </div>
+  </header>
+  <div id="bar"><div id="bf"></div></div>
+  <div id="scr">
+    <div class="dw">
+      <button id="btn" onclick="toggle()">
+        <div class="bi">🚗</div>
+        <div class="bt"><div class="bl" id="bl">Start Driving</div><div class="bs" id="bs">Tap to enable proximity alerts</div></div>
+      </button>
+    </div>
+    <div class="st"><div class="dot i" id="dot"></div><div class="sm" id="sm">Tap Start Driving to begin</div><div id="tmr"></div></div>
+    <div class="sl" id="sl">Nearby landmarks will appear here</div>
+    <div id="lst"></div>
+    <div class="hdiv"></div>
+    <div id="gps"><span id="gla">LAT —</span><span id="glo">LON —</span><span id="gsp">SPD —</span></div>
+  </div>
+</div>
+<script src="landmarks.js"></script>
+<script src="landmarks_south.js"></script>
+<script src="landmarks_topup.js"></script>
 <script>
-// ═══════════════════════════════════════════════════════════════
-//  LANDMARK DATABASE — 40 California landmarks
-//  Photos: free Wikimedia/public domain URLs (small, cacheable)
-// ═══════════════════════════════════════════════════════════════
-const LANDMARKS = [
-  {
-    name:"Mount Diablo",
-    emoji:"🏔",
-    lat:37.8816, lon:-121.9142,
-    cat:"Mountain",
-    photo:"https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Mount_Diablo_from_summit.jpg/320px-Mount_Diablo_from_summit.jpg",
-    fact:"On an exceptionally clear day, you can see <em>35 of California's 58 counties</em> from this 3,849-foot summit — one of the widest panoramic views achievable from any point in North America. Spanish surveyors used Mount Diablo as the origin point for land surveys across California and Nevada, making it the baseline for millions of property lines still in use today."
-  },
-  {
-    name:"Golden Gate Bridge",
-    emoji:"🌉",
-    lat:37.8199, lon:-122.4783,
-    cat:"Landmark",
-    photo:"https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/GoldenGateBridge-001.jpg/320px-GoldenGateBridge-001.jpg",
-    fact:"When it opened in <em>1937</em>, the Golden Gate Bridge was the longest and tallest suspension bridge on Earth, and took just four years to build despite brutal fog, wind, and tides. Its famous \"International Orange\" color was originally just the primer coat — but the consulting architect loved it so much he insisted it become permanent."
-  },
-  {
-    name:"Yosemite Valley",
-    emoji:"🏞",
-    lat:37.7456, lon:-119.5936,
-    cat:"National Park",
-    photo:"https://upload.wikimedia.org/wikipedia/commons/thumb/1/13/Tunnel_View%2C_Yosemite_Valley%2C_Yosemite_NP_-_Diliff.jpg/320px-Tunnel_View%2C_Yosemite_Valley%2C_Yosemite_NP_-_Diliff.jpg",
-    fact:"Yosemite Valley's iconic U-shape was carved by glaciers over <em>1 million years</em>, and El Capitan's sheer face is the largest exposed granite monolith on Earth — taller than the Empire State Building. From altitude, the valley's geometry reveals its glacial origins perfectly, with Half Dome's shaved-off face showing where ancient ice cleaved the peak in half."
-  },
-  {
-    name:"Lake Tahoe",
-    emoji:"💎",
-    lat:39.0968, lon:-120.0324,
-    cat:"Lake",
-    photo:"https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Sand_Harbor_Lake_Tahoe_crop.jpg/320px-Sand_Harbor_Lake_Tahoe_crop.jpg",
-    fact:"Lake Tahoe is so deep — <em>1,645 feet</em> — that it never fully freezes, and it holds enough water to cover the entire state of California 14 inches deep. The vivid sapphire-blue visible from altitude is caused by the water's exceptional purity: it's 99.9% pure and visibility can reach 70 feet down."
-  },
-  {
-    name:"Death Valley",
-    emoji:"🏜",
-    lat:36.5323, lon:-116.9325,
-    cat:"National Park",
-    photo:"https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/Ubehebe_Crater_Death_Valley.jpg/320px-Ubehebe_Crater_Death_Valley.jpg",
-    fact:"Death Valley holds the record for the <em>hottest reliably recorded air temperature on Earth</em>: 134°F on July 10, 1913, and it's also the lowest point in North America at 282 feet below sea level. The brilliant white salt flats visible from altitude are made of Borax — once hauled out by famous 20-mule teams on epic multi-day journeys to the railhead."
-  },
-  {
-    name:"Mount Shasta",
-    emoji:"🌋",
-    lat:41.4093, lon:-122.1947,
-    cat:"Volcano",
-    photo:"https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Mount_Shasta_from_south.jpg/320px-Mount_Shasta_from_south.jpg",
-    fact:"Mount Shasta is a <em>potentially active stratovolcano</em> at 14,179 feet that last erupted around 1786, and it holds more glacial ice than any other Cascade peak outside Washington state. It generates its own weather system — the famous lenticular \"flying saucer\" clouds that hover above the summit are visible for 100 miles and are caused by moist air flowing over the isolated peak."
-  },
-  {
-    name:"San Francisco Bay",
-    emoji:"🌊",
-    lat:37.8044, lon:-122.2711,
-    cat:"Bay",
-    photo:"https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/SF_from_Marin_Headlands_in_January_2013.jpg/320px-SF_from_Marin_Headlands_in_January_2013.jpg",
-    fact:"San Francisco Bay is the largest estuary on the West Coast, covering <em>1,600 square miles</em>, yet it was hidden from European explorers for over 200 years because fog perpetually concealed the narrow Golden Gate entrance. The bay's shoreline has been reduced by 80% from its original size due to landfill — much of downtown San Francisco is built on bay mud."
-  },
-  {
-    name:"Alcatraz Island",
-    emoji:"🏝",
-    lat:37.8270, lon:-122.4230,
-    cat:"Island",
-    photo:"https://upload.wikimedia.org/wikipedia/commons/thumb/0/0a/Alcatraz_Island_as_seen_from_above.jpg/320px-Alcatraz_Island_as_seen_from_above.jpg",
-    fact:"Alcatraz sits in a stretch of bay where currents run up to <em>7.5 mph</em> and water rarely exceeds 55°F, making escape theoretically suicidal — yet 36 prisoners tried. Three men vanished in June 1962 after fashioning a raft from prison raincoats, and were never conclusively found dead or alive."
-  },
-  {
-    name:"Big Sur Coastline",
-    emoji:"🌊",
-    lat:36.2704, lon:-121.8081,
-    cat:"Coastline",
-    photo:"https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Big_Sur_scenic_highway.jpg/320px-Big_Sur_scenic_highway.jpg",
-    fact:"The Santa Lucia Mountains at Big Sur rise so steeply from the ocean that only <em>90 miles of road</em> took nearly a century to build, finishing in 1937. The cliffs drop nearly 1,000 feet straight into the Pacific in places, creating one of the most dramatic coastlines on Earth and a permanent home for the California condor."
-  },
-  {
-    name:"Sequoia National Park",
-    emoji:"🌲",
-    lat:36.4864, lon:-118.5658,
-    cat:"National Park",
-    photo:"https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/General_Sherman_Tree_Sequoia_National_Park.jpg/320px-General_Sherman_Tree_Sequoia_National_Park.jpg",
-    fact:"The General Sherman Tree here is the <em>largest living organism on Earth by volume</em> — 52,500 cubic feet of wood — roughly equivalent to 15 blue whales stacked together. Giant sequoias only grow in a narrow 260-mile strip of the Sierra Nevada between 4,000 and 7,000 feet elevation, a habitat that exists nowhere else on the planet."
-  },
-  {
-    name:"Redwood National Park",
-    emoji:"🌳",
-    lat:41.2132, lon:-124.0046,
-    cat:"National Park",
-    photo:"https://upload.wikimedia.org/wikipedia/commons/thumb/d/de/Redwood_National_Park%2C_fog_in_the_forest.jpg/320px-Redwood_National_Park%2C_fog_in_the_forest.jpg",
-    fact:"The coastal redwoods here include Hyperion, the <em>tallest tree ever measured at 380 feet</em> — taller than the Statue of Liberty — its exact location kept secret to prevent visitor damage. These ancient trees rely on fog for up to 40% of their water intake, capturing moisture directly from Pacific marine layer clouds on their needles."
-  },
-  {
-    name:"Mount Whitney",
-    emoji:"⛰",
-    lat:36.5786, lon:-118.2922,
-    cat:"Mountain",
-    photo:"https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Mt_Whitney_from_Trail_Crest.jpg/320px-Mt_Whitney_from_Trail_Crest.jpg",
-    fact:"At <em>14,505 feet</em>, Mount Whitney is the highest peak in the contiguous United States — and remarkably, it sits just 85 miles from Death Valley, the lowest point in North America. The summit plateau is so flat you can walk across it without realizing you're standing on the roof of the lower 48 states."
-  },
-  {
-    name:"Central Valley Farmland",
-    emoji:"🌾",
-    lat:36.7378, lon:-119.7871,
-    cat:"Region",
-    photo:"https://upload.wikimedia.org/wikipedia/commons/thumb/c/c2/Aerial_view_of_Central_Valley_California.jpg/320px-Aerial_view_of_Central_Valley_California.jpg",
-    fact:"The patchwork of fields below produces <em>25% of all food grown in the United States</em> on just 1% of U.S. farmland — including nearly all of America's almonds, pistachios, and apricots. The valley is so flat that ancient Lake Tulare once covered 800,000 acres here, larger than Lake Tahoe, before being drained for agriculture in the 1800s."
-  },
-  {
-    name:"Sacramento River Delta",
-    emoji:"🌿",
-    lat:38.0574, lon:-121.5985,
-    cat:"Delta",
-    photo:"https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Sacramento_River_Delta_aerial.jpg/320px-Sacramento_River_Delta_aerial.jpg",
-    fact:"The Sacramento-San Joaquin Delta is a <em>1,100-mile maze</em> of waterways protecting peat islands that sit below sea level, held back by 1,100 miles of aging levees. The geometric quilt of reclaimed farmland visible from altitude was once the bed of a vast tule marsh — the peat soil is still sinking up to 3 feet per decade."
-  },
-  {
-    name:"Salton Sea",
-    emoji:"🌊",
-    lat:33.3072, lon:-115.8253,
-    cat:"Lake",
-    photo:"https://upload.wikimedia.org/wikipedia/commons/thumb/8/8f/Salton_Sea_Aerial_View.jpg/320px-Salton_Sea_Aerial_View.jpg",
-    fact:"The Salton Sea is California's <em>largest lake by surface area</em>, yet it was accidentally created in 1905 when an irrigation canal broke and the Colorado River flooded the Salton Sink for two full years. It sits 236 feet below sea level, is saltier than the Pacific Ocean, and its slow disappearance is now creating massive dust storms visible from the air."
-  },
-  {
-    name:"Channel Islands",
-    emoji:"🏝",
-    lat:34.0069, lon:-119.7785,
-    cat:"National Park",
-    photo:"https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/Channel_Islands_NP.jpg/320px-Channel_Islands_NP.jpg",
-    fact:"The Channel Islands are sometimes called California's <em>\"Galápagos\"</em> — isolated long enough that entirely unique species evolved here, including the island fox, found nowhere else on Earth. These islands were connected to the mainland during the last Ice Age when sea levels were 300 feet lower, allowing mammoths to swim across — whose dwarf descendants survived on the islands until 11,000 years ago."
-  },
-  {
-    name:"Los Angeles Basin",
-    emoji:"🌆",
-    lat:34.0522, lon:-118.2437,
-    cat:"Metro Area",
-    photo:"https://upload.wikimedia.org/wikipedia/commons/thumb/b/b9/Above_Gotham.jpg/320px-Above_Gotham.jpg",
-    fact:"The LA Basin you see below is home to <em>13 million people</em> in a flat coastal plain ringed by mountains that trap both smog and some of the most fertile agricultural land in California — now almost entirely paved. The entire basin sits atop a web of active fault lines, and the hills you see are actually folds in the earth caused by the Pacific and North American plates slowly colliding."
-  },
-  {
-    name:"Hollywood Sign",
-    emoji:"🎬",
-    lat:34.1341, lon:-118.3215,
-    cat:"Landmark",
-    photo:"https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/Hollywoodsign.jpg/320px-Hollywoodsign.jpg",
-    fact:"The Hollywood Sign debuted in <em>1923 as \"HOLLYWOODLAND\"</em> — a $21,000 real estate billboard meant to last just 18 months that ended up defining a global cultural capital. Each letter is 45 feet tall and made of sheet metal; the sign was completely rebuilt in 1978 using donations from celebrities including Alice Cooper and Hugh Hefner."
-  },
-  {
-    name:"San Andreas Fault",
-    emoji:"⚡",
-    lat:35.1667, lon:-119.6833,
-    cat:"Geological",
-    photo:"https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/SanAndreasFaultCarrizo.jpg/320px-SanAndreasFaultCarrizo.jpg",
-    fact:"The San Andreas Fault runs <em>800 miles from the Salton Sea to Cape Mendocino</em> — a visible scar in the landscape that separates two tectonic plates moving past each other at about 2 inches per year. At the Carrizo Plain, the fault is unmistakably visible from altitude as a ruler-straight line where creek beds have been offset hundreds of feet by centuries of earthquakes."
-  },
-  {
-    name:"Mono Lake",
-    emoji:"🦢",
-    lat:38.0024, lon:-119.0087,
-    cat:"Lake",
-    photo:"https://upload.wikimedia.org/wikipedia/commons/thumb/8/8f/Mono_Lake_-_Tufa_Towers.jpg/320px-Mono_Lake_-_Tufa_Towers.jpg",
-    fact:"Mono Lake is <em>over 1 million years old</em> — one of the oldest lakes in North America — and its bizarre tufa towers were formed underwater when calcium-rich springs bubbled up through the alkaline lake. The lake has no outlet, making it three times saltier and 80 times more alkaline than seawater, yet it supports trillions of brine shrimp that feed millions of migrating birds."
-  },
-  {
-    name:"Lassen Volcanic National Park",
-    emoji:"🌋",
-    lat:40.4977, lon:-121.4207,
-    cat:"Volcano",
-    photo:"https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/Lassen_Peak_from_SW.jpg/320px-Lassen_Peak_from_SW.jpg",
-    fact:"Lassen Peak last erupted in <em>1915</em> and is still geologically active, with boiling mud pots, fumaroles, and hydrothermal features that make it one of the most active volcanic landscapes in the U.S. It was the last Cascade volcano to erupt before Mount St. Helens in 1980, and scientists consider it likely to erupt again."
-  },
-  {
-    name:"Point Reyes Peninsula",
-    emoji:"🌊",
-    lat:38.0599, lon:-122.8742,
-    cat:"Seashore",
-    photo:"https://upload.wikimedia.org/wikipedia/commons/thumb/a/ae/Point_Reyes_National_Seashore.jpg/320px-Point_Reyes_National_Seashore.jpg",
-    fact:"Point Reyes sits on the <em>Pacific Plate</em> and is technically moving northwest at 2 inches per year — it will be near Alaska in 50 million years. During the 1906 San Francisco earthquake, Point Reyes shifted 20 feet northward in a matter of seconds, leaving fence lines famously offset across the fault."
-  },
-  {
-    name:"Pinnacles National Park",
-    emoji:"🪨",
-    lat:36.4906, lon:-121.1825,
-    cat:"National Park",
-    photo:"https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/Pinnacles_NP_High_Peaks.jpg/320px-Pinnacles_NP_High_Peaks.jpg",
-    fact:"The jagged spires of Pinnacles are the remnants of a <em>23-million-year-old volcano</em> — and the original volcano is 195 miles south, near Lancaster, proving how far the Pacific Plate has dragged the rock northward. Pinnacles is one of only a handful of places where the California condor, once down to 27 birds, now nests wild and free."
-  },
-  {
-    name:"Hearst Castle",
-    emoji:"🏰",
-    lat:35.6850, lon:-121.1683,
-    cat:"Historic Site",
-    photo:"https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Hearst_Castle_-_main_building.jpg/320px-Hearst_Castle_-_main_building.jpg",
-    fact:"Hearst Castle's main building covers <em>68,500 square feet with 38 bedrooms</em> and 42 bathrooms, perched 1,600 feet above the Pacific on \"The Enchanted Hill\" and visible from miles out at sea. Publisher William Randolph Hearst hosted Charlie Chaplin, Winston Churchill, and Cary Grant here — and the Neptune Pool took three rebuilds and 15 years before Hearst was satisfied."
-  },
-  {
-    name:"Santa Monica Bay",
-    emoji:"🌅",
-    lat:34.0195, lon:-118.4912,
-    cat:"Bay",
-    photo:"https://upload.wikimedia.org/wikipedia/commons/thumb/1/1f/Santa_Monica_Pier_Aerial.jpg/320px-Santa_Monica_Pier_Aerial.jpg",
-    fact:"Santa Monica Pier marks the <em>western terminus of old Route 66</em> — the famous Mother Road that once connected Chicago to the California coast. The bay curves in a perfect arc visible from altitude, shaped by the slow northward march of sand along the coast driven by longshore drift from Point Conception."
-  },
-  {
-    name:"Joshua Tree National Park",
-    emoji:"🌵",
-    lat:33.8734, lon:-115.9010,
-    cat:"National Park",
-    photo:"https://upload.wikimedia.org/wikipedia/commons/thumb/9/97/Joshua_Tree_-_Rock_formation.jpg/320px-Joshua_Tree_-_Rock_formation.jpg",
-    fact:"Joshua Tree sits at the collision point of two distinct deserts — the higher, cooler <em>Mojave</em> and the lower, hotter Sonoran — and the dramatic line between them is actually visible from altitude. The park's massive rounded boulders were formed entirely underground, then slowly exposed as ancient granite was weathered from below by groundwater over tens of millions of years."
-  },
-  {
-    name:"Mojave Desert",
-    emoji:"🏜",
-    lat:35.0110, lon:-115.4734,
-    cat:"Desert",
-    photo:"https://upload.wikimedia.org/wikipedia/commons/thumb/b/b3/Mojave_Desert_California.jpg/320px-Mojave_Desert_California.jpg",
-    fact:"The Mojave Desert is the <em>smallest and driest desert in North America</em>, yet it contains the most Joshua trees, the largest solar farm on Earth, and the legendary Edwards Air Force Base where Chuck Yeager broke the sound barrier. The desert lakebed you may see below — Rogers Dry Lake — is so flat it was used as NASA's emergency landing strip for space shuttles."
-  },
-  {
-    name:"Lake Oroville",
-    emoji:"💧",
-    lat:39.5388, lon:-121.4850,
-    cat:"Reservoir",
-    photo:"https://upload.wikimedia.org/wikipedia/commons/thumb/b/bf/Oroville_Dam_from_air.jpg/320px-Oroville_Dam_from_air.jpg",
-    fact:"Oroville Dam is the <em>tallest dam in the United States</em> at 770 feet — taller than the Washington Monument — holding back a reservoir that supplies water to two-thirds of Californians. In 2017, its spillway catastrophically eroded, forcing the emergency evacuation of 188,000 people downstream in one of the largest evacuations in California history."
-  },
-  {
-    name:"San Diego Bay",
-    emoji:"⚓",
-    lat:32.7157, lon:-117.1611,
-    cat:"Bay",
-    photo:"https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/San_Diego_bay_aerial.jpg/320px-San_Diego_bay_aerial.jpg",
-    fact:"San Diego Bay is home to the <em>largest naval fleet concentration</em> in the world — you can often see aircraft carriers, destroyers, and submarines simultaneously from altitude. The bay has one of the most perfect natural harbors on the Pacific Coast, which is why explorer Juan Rodríguez Cabrillo made it the first European landing in California in 1542."
-  },
-  {
-    name:"Kings Canyon",
-    emoji:"🏔",
-    lat:36.8879, lon:-118.5551,
-    cat:"National Park",
-    photo:"https://upload.wikimedia.org/wikipedia/commons/thumb/5/5c/Kings_Canyon_National_Park.jpg/320px-Kings_Canyon_National_Park.jpg",
-    fact:"Kings Canyon has walls that plunge over <em>8,000 feet</em> from rim to river — deeper than the Grand Canyon — making it one of the deepest canyons in North America. The canyon was so remote that the Kings River wasn't reached by a road until 1939, nearly a century after California statehood."
-  },
-  {
-    name:"Napa Valley",
-    emoji:"🍇",
-    lat:38.5025, lon:-122.2654,
-    cat:"Valley",
-    photo:"https://upload.wikimedia.org/wikipedia/commons/thumb/9/9b/Napa_Valley_Aerial.jpg/320px-Napa_Valley_Aerial.jpg",
-    fact:"Napa Valley is just <em>30 miles long and 5 miles wide</em> yet produces wines that shocked the world when they beat top French vintages in the legendary 1976 \"Judgment of Paris\" blind tasting. The valley's unique microclimate is created by morning fog rolling in from San Pablo Bay, which cools the grapes slowly — a thermal pattern clearly visible from altitude as a white blanket retreating up-valley each morning."
-  },
-  {
-    name:"Carrizo Plain",
-    emoji:"🌾",
-    lat:35.1000, lon:-119.7833,
-    cat:"Plain",
-    photo:"https://upload.wikimedia.org/wikipedia/commons/thumb/c/c8/Carrizo_Plain_wildflowers.jpg/320px-Carrizo_Plain_wildflowers.jpg",
-    fact:"The Carrizo Plain is California's last large <em>intact grassland ecosystem</em>, and in spring it explodes into a superbloom of wildflowers covering hundreds of square miles — visible as an orange and yellow carpet from cruising altitude. The plain is also where the San Andreas Fault is most dramatically visible, cutting a ruler-straight line across the landscape where the earth has moved 130 feet horizontally."
-  },
-  {
-    name:"Owens Valley",
-    emoji:"⛰",
-    lat:36.7682, lon:-118.1937,
-    cat:"Valley",
-    photo:"https://upload.wikimedia.org/wikipedia/commons/thumb/0/02/Owens_Valley_from_White_Mountain.jpg/320px-Owens_Valley_from_White_Mountain.jpg",
-    fact:"Owens Valley sits between the <em>two highest mountain ranges in the contiguous US</em> — the Sierra Nevada on the west and the White-Inyo range on the east — creating a dramatic 10,000-foot wall on both sides. Los Angeles secretly bought up Owens Valley water rights in 1905, then built a 233-mile aqueduct that transformed a prosperous farming valley into near-desert, sparking California's water wars."
-  },
-  {
-    name:"Point Conception",
-    emoji:"🌊",
-    lat:34.4483, lon:-120.4717,
-    cat:"Cape",
-    photo:"https://upload.wikimedia.org/wikipedia/commons/thumb/3/31/Point_Conception_Lighthouse.jpg/320px-Point_Conception_Lighthouse.jpg",
-    fact:"Point Conception is called the <em>\"Cape Horn of the Pacific\"</em> — the dramatic corner where California's coastline turns from north-south to east-west, creating one of the most treacherous stretches of water on the West Coast. This geographic elbow also divides two distinct climate zones: north of here is cool and foggy, south is the warm Mediterranean California most people picture."
-  },
-  {
-    name:"Clear Lake",
-    emoji:"💧",
-    lat:39.0927, lon:-122.7833,
-    cat:"Lake",
-    photo:"https://upload.wikimedia.org/wikipedia/commons/thumb/0/0a/Clear_Lake_California_aerial.jpg/320px-Clear_Lake_California_aerial.jpg",
-    fact:"Clear Lake is California's <em>largest natural freshwater lake</em> entirely within state borders, and at over 2 million years old, it is one of the oldest lakes in North America. The lake basin was formed by volcanic activity — it sits above a magma chamber — and local geothermal power plants use its underground heat to generate electricity."
-  },
-  {
-    name:"Antelope Valley",
-    emoji:"🌸",
-    lat:34.7420, lon:-118.1165,
-    cat:"Valley",
-    photo:"https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/California_Poppy_Fields.jpg/320px-California_Poppy_Fields.jpg",
-    fact:"Every spring, when winter rains are just right, Antelope Valley erupts in <em>millions of California poppies</em> — the state flower — creating orange fields visible from aircraft that draw visitors from around the world. The valley is also home to Edwards Air Force Base, where Chuck Yeager first broke the sound barrier in 1947 over the dry lakebed below you."
-  },
-  {
-    name:"Shasta Lake",
-    emoji:"💧",
-    lat:40.7185, lon:-122.4158,
-    cat:"Reservoir",
-    photo:"https://upload.wikimedia.org/wikipedia/commons/thumb/b/b3/Shasta_Lake_aerial.jpg/320px-Shasta_Lake_aerial.jpg",
-    fact:"Shasta Lake is California's <em>largest reservoir</em>, with a shoreline longer than the entire California coastline at 365 miles — one mile of shore for every day of the year. Shasta Dam, completed in 1945, displaced thousands of Winnemem Wintu people and flooded the McCloud River canyon that Chief Winnemem had lived along for generations."
-  },
-  {
-    name:"Monterey Bay",
-    emoji:"🐋",
-    lat:36.8007, lon:-121.9473,
-    cat:"Bay",
-    photo:"https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/Monterey_Bay_aerial.jpg/320px-Monterey_Bay_aerial.jpg",
-    fact:"Monterey Bay sits above one of the <em>deepest underwater canyons in North America</em> — the Monterey Canyon drops 11,800 feet, as deep as the Grand Canyon is tall. The cold, nutrient-rich upwelling from the canyon makes Monterey Bay one of the most productive marine ecosystems on Earth, supporting blue whales, sea otters, and massive sardine runs."
-  },
-  {
-    name:"Silicon Valley",
-    emoji:"💻",
-    lat:37.3861, lon:-122.0839,
-    cat:"Metro Area",
-    photo:"https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/Silicon_Valley_from_air.jpg/320px-Silicon_Valley_from_air.jpg",
-    fact:"The Santa Clara Valley below you — dubbed Silicon Valley in <em>1971</em> — was once the world's largest producer of prunes and apricots before the orchards were replaced by tech campuses. The valley's famous fog is a visible reminder that its climate, shaped by bay air and coastal mountains, was originally what attracted the fruit industry, and later influenced the informal outdoor culture that defined early tech companies."
-  },
-  {
-    name:"Morro Bay Rock",
-    emoji:"🪨",
-    lat:35.3658, lon:-120.8607,
-    cat:"Landmark",
-    photo:"https://upload.wikimedia.org/wikipedia/commons/thumb/1/10/Morro_Rock_California.jpg/320px-Morro_Rock_California.jpg",
-    fact:"Morro Rock is a <em>23-million-year-old volcanic plug</em> — the hardened magma core of an ancient volcano whose outer layers have completely eroded away. It's the last in a chain of 13 such plugs called the \"Nine Sisters\" that march inland for 12 miles, each one progressively older, all formed by the same volcanic hot spot as the Pacific Plate slid northward."
-  },
-  {
-    name:"Anza-Borrego Desert",
-    emoji:"🌵",
-    lat:33.2553, lon:-116.4100,
-    cat:"State Park",
-    photo:"https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Anza-Borrego_Desert_State_Park.jpg/320px-Anza-Borrego_Desert_State_Park.jpg",
-    fact:"Anza-Borrego is the <em>largest state park in the contiguous US</em> at 600,000 acres — bigger than Los Angeles County — and contains fossils of camels, horses, and mammoths that roamed here just 10,000 years ago. The park's dark skies are so pristine it was designated an International Dark Sky Community, and on clear nights the Milky Way casts shadows."
-  },
-  {
-    name:"San Joaquin River",
-    emoji:"🌊",
-    lat:37.3382, lon:-121.2768,
-    cat:"River",
-    photo:"https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/San_Joaquin_River_Gorge.jpg/320px-San_Joaquin_River_Gorge.jpg",
-    fact:"The San Joaquin River once ran freely for <em>350 miles from the Sierra Nevada to San Francisco Bay</em>, but by 1942 so much water had been diverted that a 60-mile stretch completely dried up — the only major river in the continental US to go entirely dry from human use. A landmark 2006 settlement began restoring flows, and salmon swam its waters again for the first time in 60 years."
-  }
-];
-
-// ═══════════════════════════════════════════════════════════════
-//  STATE
-// ═══════════════════════════════════════════════════════════════
-let userLat = null, userLon = null;
-let userHeading = null, userSpeed = null;
-let autoTimer = null, countdownTimer = null;
-let refreshSeconds = 20 * 60; // 20 minutes
-let secondsLeft = refreshSeconds;
-let deferredInstall = null;
-let isScanning = false;
-
-// ═══════════════════════════════════════════════════════════════
-//  MATH HELPERS
-// ═══════════════════════════════════════════════════════════════
-function distanceMiles(lat1, lon1, lat2, lon2) {
-  const R = 3958.8;
-  const dLat = (lat2-lat1)*Math.PI/180;
-  const dLon = (lon2-lon1)*Math.PI/180;
-  const a = Math.sin(dLat/2)**2 +
-    Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
-  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+const ALL=[...LANDMARKS,...LANDMARKS_SOUTH,...LANDMARKS_TOPUP];
+let on=false,wid=null,stimer=null,secs=0,lat=null,lon=null;
+let seen=new Set(),queue=[],showing=false,ptimer=null;
+const SECS=15,RAD=5.0;
+function d(a,b,c,e){const R=3958.8,dL=(c-a)*Math.PI/180,dl=(e-b)*Math.PI/180,x=Math.sin(dL/2)**2+Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(dl/2)**2;return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));}
+function b(a,b,c,e){const dl=(e-b)*Math.PI/180,y=Math.sin(dl)*Math.cos(c*Math.PI/180),x=Math.cos(a*Math.PI/180)*Math.sin(c*Math.PI/180)-Math.sin(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.cos(dl);return(Math.atan2(y,x)*180/Math.PI+360)%360;}
+function cd(v){return['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'][Math.round(v/22.5)%16];}
+function st(cls,msg){document.getElementById('dot').className='dot '+cls;document.getElementById('sm').textContent=msg;}
+function toggle(){on?stop():go();}
+function go(){
+  if(!navigator.geolocation){st('e','GPS not available');return;}
+  on=true;document.getElementById('btn').classList.add('on');
+  document.getElementById('bl').textContent='Driving';
+  document.getElementById('bs').textContent='Tap to stop';
+  st('s','Acquiring GPS…');
+  wid=navigator.geolocation.watchPosition(pos,err,{enableHighAccuracy:true,timeout:12000,maximumAge:5000});
 }
-
-function bearingDeg(lat1, lon1, lat2, lon2) {
-  const dLon = (lon2-lon1)*Math.PI/180;
-  const y = Math.sin(dLon)*Math.cos(lat2*Math.PI/180);
-  const x = Math.cos(lat1*Math.PI/180)*Math.sin(lat2*Math.PI/180)
-    - Math.sin(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.cos(dLon);
-  return (Math.atan2(y,x)*180/Math.PI+360)%360;
+function stop(){
+  on=false;if(wid!==null){navigator.geolocation.clearWatch(wid);wid=null;}
+  clearInterval(stimer);document.getElementById('btn').classList.remove('on');
+  document.getElementById('bl').textContent='Start Driving';
+  document.getElementById('bs').textContent='Tap to enable proximity alerts';
+  document.getElementById('bf').style.width='100%';
+  document.getElementById('tmr').textContent='';st('i','Stopped');
 }
-
-function bearingLabel(deg) {
-  const dirs = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
-  return dirs[Math.round(deg/22.5)%16];
+function err(e){const m={1:'Location permission denied.',2:'Position unavailable.',3:'GPS timed out.'};st('e',m[e.code]||'GPS error.');}
+function pos(p){
+  lat=p.coords.latitude;lon=p.coords.longitude;
+  const spd=p.coords.speed;
+  document.getElementById('gla').textContent='LAT '+lat.toFixed(4);
+  document.getElementById('glo').textContent='LON '+lon.toFixed(4);
+  document.getElementById('gsp').textContent=spd!==null?'SPD '+Math.round(spd*2.237)+' mph':'SPD —';
+  st('a','Driving — scanning for landmarks');
+  refresh();scan();tick();
 }
-
-function fmtCountdown(s) {
-  const m = Math.floor(s/60), sec = s%60;
-  return m+'m '+(sec<10?'0':'')+sec+'s';
+function tick(){
+  clearInterval(stimer);secs=SECS;bar();
+  stimer=setInterval(()=>{secs--;bar();if(secs<=0){secs=SECS;if(lat)scan();}},1000);
 }
-
-// ═══════════════════════════════════════════════════════════════
-//  STATUS
-// ═══════════════════════════════════════════════════════════════
-function setStatus(state, text) {
-  document.getElementById('statusDot').className = 'status-dot '+state;
-  document.getElementById('statusText').textContent = text;
+function bar(){document.getElementById('bf').style.width=(secs/SECS*100)+'%';document.getElementById('tmr').textContent='scan in '+secs+'s';}
+function scan(){
+  if(!lat)return;
+  ALL.map(lm=>({...lm,dist:d(lat,lon,lm.lat,lm.lon)}))
+    .filter(lm=>lm.dist<=RAD&&!seen.has(lm.name))
+    .sort((a,z)=>a.dist-z.dist)
+    .forEach(lm=>{seen.add(lm.name);queue.push(lm);});
+  document.getElementById('sc').textContent=seen.size;
+  if(!showing&&queue.length>0)showNext();
 }
-
-// ═══════════════════════════════════════════════════════════════
-//  AUTO REFRESH
-// ═══════════════════════════════════════════════════════════════
-function startAutoRefresh() {
-  clearInterval(autoTimer);
-  clearInterval(countdownTimer);
-  secondsLeft = refreshSeconds;
-  updateRefreshBar();
-
-  countdownTimer = setInterval(() => {
-    secondsLeft--;
-    updateRefreshBar();
-    if (secondsLeft <= 0) {
-      secondsLeft = refreshSeconds;
-      startScan(true);
-    }
-  }, 1000);
+function showNext(){
+  if(!queue.length){showing=false;return;}
+  showing=true;const lm=queue.shift();
+  const ph=document.getElementById('pp'),pe=document.getElementById('pe');
+  if(lm.photo){ph.style.display='block';pe.style.display='none';ph.src=lm.photo;ph.onerror=()=>{ph.style.display='none';pe.style.display='flex';};}
+  else{ph.style.display='none';pe.style.display='flex';pe.textContent=lm.emoji;}
+  document.getElementById('ptag').textContent=lm.county+' County · '+lm.cat;
+  document.getElementById('pnm').textContent=lm.name;
+  const dist=lm.dist!==undefined?lm.dist.toFixed(1):'?';
+  const dir=lat?cd(b(lat,lon,lm.lat,lm.lon)):'';
+  document.getElementById('pds').innerHTML='<b>'+dist+' miles</b> · '+dir;
+  document.getElementById('pf').innerHTML=lm.fact;
+  const pg=document.getElementById('pgb');pg.style.transition='none';pg.style.width='100%';
+  setTimeout(()=>{pg.style.transition='width 12s linear';pg.style.width='0%';},50);
+  document.getElementById('pop').classList.add('show');
+  clearTimeout(ptimer);ptimer=setTimeout(dismiss,12000);
 }
-
-function updateRefreshBar() {
-  const pct = (secondsLeft / refreshSeconds) * 100;
-  document.getElementById('refreshFill').style.width = pct + '%';
-  const lbl = document.getElementById('nextScanLabel');
-  if (secondsLeft < refreshSeconds) {
-    lbl.textContent = 'rescan in ' + fmtCountdown(secondsLeft);
-  }
+function dismiss(){
+  clearTimeout(ptimer);document.getElementById('pop').classList.remove('show');
+  setTimeout(()=>{if(queue.length>0)showNext();else showing=false;},600);
 }
-
-// ═══════════════════════════════════════════════════════════════
-//  MAIN SCAN
-// ═══════════════════════════════════════════════════════════════
-function startScan(isAuto) {
-  if (isScanning) return;
-  if (!navigator.geolocation) {
-    setStatus('error','Geolocation not available on this device'); return;
-  }
-  isScanning = true;
-  const btn = document.getElementById('scanBtn');
-  btn.classList.add('scanning');
-  setStatus('scanning', isAuto ? 'Auto-refreshing location…' : 'Acquiring GPS signal…');
-
-  navigator.geolocation.getCurrentPosition(
-    (pos) => {
-      isScanning = false;
-      btn.classList.remove('scanning');
-      userLat = pos.coords.latitude;
-      userLon = pos.coords.longitude;
-      userHeading = pos.coords.heading;   // degrees true, null if stationary
-      userSpeed = pos.coords.speed;       // m/s, null if stationary
-      const acc = pos.coords.accuracy;
-      document.getElementById('gpsLat').textContent = 'LAT '+userLat.toFixed(4);
-      document.getElementById('gpsLon').textContent = 'LON '+userLon.toFixed(4);
-      document.getElementById('gpsAcc').textContent = userHeading !== null
-        ? 'HDG '+Math.round(userHeading)+'° · '+Math.round(userSpeed*2.237)+' mph'
-        : 'ACC ±'+Math.round(acc)+'m';
-      showResults(userLat, userLon);
-      if (!isAuto) startAutoRefresh();
-    },
-    (err) => {
-      isScanning = false;
-      btn.classList.remove('scanning');
-      let msg = 'GPS error — ';
-      if (err.code===1) msg += 'location permission denied.';
-      else if (err.code===2) msg += 'position unavailable.';
-      else if (err.code===3) msg += 'timed out. Tap to retry.';
-      setStatus('error', msg);
-    },
-    { enableHighAccuracy:true, timeout:15000, maximumAge:60000 }
-  );
+function detail(lm){
+  const dist=lat?d(lat,lon,lm.lat,lm.lon).toFixed(1):'?';
+  const dir=lat?cd(b(lat,lon,lm.lat,lm.lon)):'';
+  const ph=document.getElementById('pp'),pe=document.getElementById('pe');
+  if(lm.photo){ph.style.display='block';pe.style.display='none';ph.src=lm.photo;ph.onerror=()=>{ph.style.display='none';pe.style.display='flex';};}
+  else{ph.style.display='none';pe.style.display='flex';pe.textContent=lm.emoji;}
+  document.getElementById('ptag').textContent=lm.county+' County · '+lm.cat;
+  document.getElementById('pnm').textContent=lm.name;
+  document.getElementById('pds').innerHTML='<b>'+dist+' miles</b> · '+dir;
+  document.getElementById('pf').innerHTML=lm.fact;
+  const pg=document.getElementById('pgb');pg.style.transition='none';pg.style.width='100%';
+  document.getElementById('pop').classList.add('show');
+  clearTimeout(ptimer);ptimer=setTimeout(dismiss,20000);
 }
-
-// ═══════════════════════════════════════════════════════════════
-//  SHOW RESULTS
-// ═══════════════════════════════════════════════════════════════
-function showResults(lat, lon) {
-  const sorted = LANDMARKS.map(lm => ({
-    ...lm,
-    distance: distanceMiles(lat, lon, lm.lat, lm.lon),
-    bearing: bearingDeg(lat, lon, lm.lat, lm.lon)
-  })).sort((a,b) => a.distance - b.distance);
-
-  const n = sorted[0];
-  setStatus('found', n.name + ' · ' + n.distance.toFixed(1) + ' mi ' + bearingLabel(n.bearing));
-  renderCard(n);
-
-  // nearby
-  const list = document.getElementById('nearbyList');
-  list.innerHTML = '';
-  sorted.slice(1,6).forEach(lm => {
-    const row = document.createElement('div');
-    row.className = 'nearby-item';
-    const thumbHtml = lm.photo
-      ? `<img class="nearby-thumb" src="${lm.photo}" loading="lazy" onerror="this.style.display='none';this.nextSibling.style.display='flex'" alt="${lm.name}"><div class="nearby-thumb-emoji" style="display:none">${lm.emoji}</div>`
-      : `<div class="nearby-thumb-emoji">${lm.emoji}</div>`;
-    row.innerHTML = `
-      ${thumbHtml}
-      <div class="nearby-info">
-        <div class="nearby-name">${lm.name}</div>
-        <div class="nearby-meta">${lm.distance.toFixed(1)} mi · ${lm.cat}</div>
-      </div>
-      <div class="nearby-bearing">${bearingLabel(lm.bearing)}<br><span style="font-size:9px">${Math.round(lm.bearing)}°</span></div>
-    `;
-    row.onclick = () => { renderCard(lm); document.getElementById('resultCard').scrollIntoView({behavior:'smooth',block:'start'}); };
-    list.appendChild(row);
+function refresh(){
+  if(!lat)return;
+  const sorted=ALL.map(lm=>({...lm,dist:d(lat,lon,lm.lat,lm.lon),brg:b(lat,lon,lm.lat,lm.lon)})).sort((a,z)=>a.dist-z.dist).slice(0,25);
+  const el=document.getElementById('lst');el.innerHTML='';
+  document.getElementById('sl').textContent='Nearest Landmarks';
+  sorted.forEach(lm=>{
+    const row=document.createElement('div');
+    row.className='li'+(seen.has(lm.name)?' seen':'');
+    const th=lm.photo?`<img class="lt" src="${lm.photo}" loading="lazy" onerror="this.style.display='none';this.nextSibling.style.display='flex'" alt=""><div class="le" style="display:none">${lm.emoji}</div>`:`<div class="le">${lm.emoji}</div>`;
+    row.innerHTML=`${th}<div class="li-i"><div class="li-n">${lm.name}</div><div class="li-c">${lm.cat}</div><div class="li-co">${lm.county}${seen.has(lm.name)?' · ✓':''}</div></div><div class="li-r"><div class="li-d">${lm.dist.toFixed(1)} mi</div><div class="li-b">${cd(lm.brg)}</div></div>`;
+    row.onclick=()=>detail(lm);el.appendChild(row);
   });
-  document.getElementById('nearbySection').style.display = 'block';
-
-  setTimeout(() => {
-    document.getElementById('resultCard').scrollIntoView({behavior:'smooth',block:'start'});
-  }, 120);
 }
-
-function renderCard(lm) {
-  // photo
-  const wrap = document.getElementById('cardPhotoWrap');
-  if (lm.photo) {
-    wrap.innerHTML = `<img class="card-photo" src="${lm.photo}" alt="${lm.name}" onerror="this.style.display='none';this.nextSibling.style.display='flex'"><div class="card-photo-placeholder" style="display:none">${lm.emoji}</div>`;
-  } else {
-    wrap.innerHTML = `<div class="card-photo-placeholder">${lm.emoji}</div>`;
-  }
-
-  document.getElementById('cardName').textContent = lm.name;
-  document.getElementById('cardMeta').innerHTML =
-    '<strong>'+(lm.distance?lm.distance.toFixed(1):'?')+' miles</strong> · '+lm.cat;
-  document.getElementById('cardFact').innerHTML = lm.fact;
-
-  // compass
-  if (lm.bearing !== undefined) {
-    document.getElementById('compassNeedle').style.transform = `rotate(${lm.bearing}deg)`;
-    document.getElementById('compassDir').textContent = bearingLabel(lm.bearing);
-    document.getElementById('compassDeg').textContent = Math.round(lm.bearing)+'°';
-  }
-
-  // ETA ribbon — only if we have heading + speed from GPS
-  renderETA(lm);
-
-  const card = document.getElementById('resultCard');
-  card.classList.remove('visible');
-  void card.offsetWidth;
-  card.classList.add('visible');
-}
-
-// ── ETA calculation using GPS-provided heading & speed (no user input) ──
-// Uses closest point of approach along flight path vector.
-// heading: degrees true, speed: m/s from GPS
-function renderETA(lm) {
-  const etaEl = document.getElementById('cardETA');
-  if (!etaEl) return;
-
-  if (userHeading === null || userSpeed === null || userSpeed < 10) {
-    // Speed < 10 m/s (~22 mph) = not airborne or stationary — hide ribbon
-    etaEl.className = 'card-eta';
-    etaEl.innerHTML = '';
-    return;
-  }
-
-  const speedMph = userSpeed * 2.23694;
-  const hdgRad = userHeading * Math.PI / 180;
-
-  // Unit vector of flight path
-  const dx = Math.sin(hdgRad);
-  const dy = Math.cos(hdgRad);
-
-  // Vector from plane to landmark (in rough miles, flat-earth ok for short distances)
-  const milesPerDegLat = 69.0;
-  const milesPerDegLon = 69.0 * Math.cos(userLat * Math.PI / 180);
-  const vx = (lm.lon - userLon) * milesPerDegLon;
-  const vy = (lm.lat - userLat) * milesPerDegLat;
-
-  // Project landmark onto flight path: t = dot(v, d)
-  const t = vx * dx + vy * dy;
-
-  if (t < 0) {
-    // Landmark is behind the plane
-    etaEl.className = 'card-eta show';
-    etaEl.innerHTML = `
-      <div class="eta-block">
-        <div class="eta-label">Direction</div>
-        <div class="eta-value" style="font-size:18px;color:var(--white-dim)">Behind</div>
-      </div>
-      <div class="eta-approach">This landmark is <strong>behind your current heading</strong>. You've already passed over or are flying away from it.</div>
-    `;
-    return;
-  }
-
-  // Closest approach point
-  const closestX = dx * t;
-  const closestY = dy * t;
-  const offsetMiles = Math.sqrt((vx - closestX)**2 + (vy - closestY)**2);
-  const etaMinutes = t / speedMph * 60;
-
-  const hh = Math.floor(etaMinutes / 60);
-  const mm = Math.round(etaMinutes % 60);
-  const etaStr = hh > 0 ? `${hh}h ${mm}m` : `${mm} min`;
-  const sideStr = offsetMiles < 2 ? 'Directly overhead' :
-    ((vx * dy - vy * dx) > 0 ? `${offsetMiles.toFixed(0)} mi to your right` : `${offsetMiles.toFixed(0)} mi to your left`);
-
-  etaEl.className = 'card-eta show';
-  etaEl.innerHTML = `
-    <div class="eta-block">
-      <div class="eta-label">ETA</div>
-      <div class="eta-value">${etaStr}</div>
-    </div>
-    <div class="eta-sep"></div>
-    <div class="eta-block">
-      <div class="eta-label">At ${Math.round(speedMph)} mph</div>
-      <div class="eta-value" style="font-size:16px">${t.toFixed(0)} mi</div>
-    </div>
-    <div class="eta-sep"></div>
-    <div class="eta-approach"><strong>${sideStr}</strong> — ${offsetMiles < 1 ? 'look straight down!' : 'look out your window'}</div>
-  `;
-}
-
-// ═══════════════════════════════════════════════════════════════
-//  PWA
-// ═══════════════════════════════════════════════════════════════
-window.addEventListener('online', () => document.getElementById('offlineBanner').classList.remove('show'));
-window.addEventListener('offline', () => document.getElementById('offlineBanner').classList.add('show'));
-if (!navigator.onLine) document.getElementById('offlineBanner').classList.add('show');
-
-window.addEventListener('beforeinstallprompt', e => {
-  e.preventDefault(); deferredInstall = e;
-  document.getElementById('installPrompt').classList.add('show');
-});
-document.getElementById('installBtn').onclick = async () => {
-  if (deferredInstall) {
-    deferredInstall.prompt();
-    const r = await deferredInstall.userChoice;
-    if (r.outcome==='accepted') document.getElementById('installPrompt').classList.remove('show');
-    deferredInstall = null;
-  }
-};
-
-document.getElementById('landmarkCount').textContent = LANDMARKS.length;
-
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js').catch(()=>{});
-}
+document.getElementById('tc').textContent=ALL.length;
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
 </body>
 </html>

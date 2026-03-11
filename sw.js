@@ -1,14 +1,13 @@
-const CACHE = 'roadguide-v5';
-
+const CACHE = 'roadguide-v4';
 const CORE = [
-  '/skyguide/',
-  '/skyguide/index.html',
-  '/skyguide/landmarks.js',
-  '/skyguide/landmarks_south.js',
-  '/skyguide/landmarks_topup.js',
-  '/skyguide/manifest.json',
-  '/skyguide/icon-192.png',
-  '/skyguide/icon-512.png'
+  '/skyGuide/',
+  '/skyGuide/index.html',
+  '/skyGuide/landmarks.js',
+  '/skyGuide/landmarks_south.js',
+  '/skyGuide/landmarks_topup.js',
+  '/skyGuide/manifest.json',
+  '/skyGuide/icon-192.png',
+  '/skyGuide/icon-512.png'
 ];
 
 self.addEventListener('install', e => {
@@ -32,20 +31,14 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   e.respondWith(
     caches.match(e.request).then(cached => {
-
       if (cached) return cached;
-
       return fetch(e.request).then(res => {
-
         if (res && res.status === 200 && res.type !== 'opaque') {
           const clone = res.clone();
           caches.open(CACHE).then(c => c.put(e.request, clone));
         }
-
         return res;
-
-      }).catch(() => cached || new Response('Offline', {status:503}));
-
+      }).catch(() => cached || new Response('Offline', {status: 503}));
     })
   );
 });

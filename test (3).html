@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ticketmaster Event Test</title>
+<style>
+  body{font-family:monospace;background:#0a0f1a;color:#eef2ff;padding:20px;}
+  h2{color:#c9a84c;}
+  button{background:#c9a84c;color:#000;border:none;padding:12px 24px;
+         font-size:15px;border-radius:8px;cursor:pointer;margin:6px 4px;display:block;width:100%;}
+  #output{background:#111827;border:1px solid #333;border-radius:8px;
+          padding:16px;margin-top:16px;white-space:pre-wrap;
+          font-size:12px;line-height:1.8;min-height:80px;}
+  .ok{color:#50c880;} .err{color:#e05555;} .dim{color:#888;}
+</style>
+</head>
+<body>
+<h2>🎟 Ticketmaster API Test</h2>
+
+<button onclick="testKey()">1. Verify API Key Works</button>
+<button onclick="testLocation()">2. Get My Location</button>
+<button onclick="testEvents()">3. Search Events Near Me</button>
+<button onclick="clearOutput()">Clear</button>
+
+<div id="output"><span class="dim">Click a button to start…</span></div>
+
+<script>
+var TM_KEY = 'DqVsAFXbOTvz3GAscGsYvPW8Wl6dxpI7';
+var myLat  = null;
+var myLon  = null;
+
+function log(msg, cls) {
+  var el = document.getElementById('output');
+  var d  = document.createElement('div');
+  d.className = cls || ''; d.textContent = msg;
+  el.appendChild(d);
+}
+function clearOutput() {
+  document.getElementById('output').innerHTML = '';
+}
+
+// Test 1: Verify key works with a simple known-city search
+function testKey() {
+  log('── Testing API key with San Francisco search…', 'dim');
+  var url = 'https://app.ticketmaster.com/discovery/v2/events.json'
+    + '?apikey=' + TM_KEY
+    + '&city=San+Francisco'
+    + '&countryCode=US'
+    + '&size=3';
+
+  fetch(url)
+    .then(function(r) {
+      log('HTTP status: ' + r.status, r.ok ? 'ok' : 'err');
+      return r.json();
+    })
+    .then(function(data) {
+      if (data.fault) {
+        log('✗ API error: ' + data.fault.faultstring, 'err');
+        return;
+      }
+      if (data._embedded && data._embedded.events) {
+        log('✓ API key works! Found ' + data._embedded.events.length + ' events in SF', 'ok');
+        data._embedded.events.forEach(function(e, i) {
+          log((i+1) + '. ' + e.name, 'ok');
+          log('   ' + (e.dates && e.dates.start && e.dates.start.localDate || ''), 'dim');
+        });
+      } else {
+        log('Response: ' + JSON.stringify(data).substring(0,300), 'dim');
+      }
+    })
+    .catch(function(e) { log('✗ ' + e.message, 'err'); });
+}
+
+// Test 2: Get GPS location
+function testLocation() {
+  log('── Getting your location…', 'dim');
+  if (!navigator.geolocation) {
+    log('✗ Geolocation not supported', 'err'); return;
+  }
+  navigator.geolocation.getCurrentPosition(
+    function(pos) {
+      myLat = pos.coords.latitude;
+      myLon = pos.coords.longitude;
+      log('✓ Location: ' + myLat.toFixed(4) + ', ' + myLon.toFixed(4), 'ok');
+    },
+    function(e) { log('✗ ' + e.message, 'err'); },
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
+}
+
+// Test 3: Search events near GPS location
+function testEvents() {
+  if (!myLat) {
+    log('⚠ Run "Get My Location" first', 'err'); return;
+  }
+  log('── Searching events near ' + myLat.toFixed(3) + ',' + myLon.toFixed(3) + '…', 'dim');
+
+  var url = 'https://app.ticketmaster.com/discovery/v2/events.json'
+    + '?apikey=' + TM_KEY
+    + '&latlong=' + myLat + ',' + myLon
+    + '&radius=25'
+    + '&unit=miles'
+    + '&size=8'
+    + '&sort=distance,asc';
+
+  fetch(url)
+    .then(function(r) {
+      log('HTTP status: ' + r.status, r.ok ? 'ok' : 'err');
+      return r.json();
+    })
+    .then(function(data) {
+      if (data.fault) {
+        log('✗ ' + data.fault.faultstring, 'err'); return;
+      }
+      if (!data._embedded || !data._embedded.events) {
+        log('No events found near your location.', 'err');
+        log(JSON.stringify(data).substring(0,200), 'dim');
+        return;
+      }
+      var events = data._embedded.events;
+      log('✓ Found ' + events.length + ' events within 25 miles!', 'ok');
+      events.forEach(function(e, i) {
+        var date  = e.dates && e.dates.start && e.dates.start.localDate || '?';
+        var time  = e.dates && e.dates.start && e.dates.start.localTime || '';
+        var venue = e._embedded && e._embedded.venues && e._embedded.venues[0];
+        var vname = venue ? venue.name : '';
+        var city  = venue ? (venue.city && venue.city.name || '') : '';
+        log((i+1) + '. ' + e.name, 'ok');
+        log('   ' + date + (time ? ' ' + time.substring(0,5) : '') + (vname ? ' @ ' + vname : '') + (city ? ', ' + city : ''), 'dim');
+      });
+    })
+    .catch(function(e) { log('✗ ' + e.message, 'err'); });
+}
+</script>
+</body>
+</html>

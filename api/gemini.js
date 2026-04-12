@@ -11,18 +11,21 @@ export default async function handler(req, res) {
   const { landmark } = req.body;
   const apiKey = process.env.GEMINI_API_KEY;
 
+  if (!apiKey) {
+    return res.status(500).json({ text: 'DEBUG: API key is missing' });
+  }
+
   try {
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: `You are an expert tour guide. The user is looking at ${landmark}. Tell them a fascinating, deep-dive story or fact about this location that they wouldn't find in a basic brochure. Keep it engaging.` }] }]
+        contents: [{ parts: [{ text: `Tell me about ${landmark}` }] }]
       })
     });
     const data = await response.json();
-    const aiText = data.candidates[0].content.parts[0].text;
-    return res.status(200).json({ text: aiText });
+    return res.status(200).json({ text: JSON.stringify(data) });
   } catch (error) {
-    return res.status(500).json({ error: 'Failed to talk to Gemini' });
+    return res.status(500).json({ text: 'DEBUG ERROR: ' + error.message });
   }
 }

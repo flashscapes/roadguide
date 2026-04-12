@@ -202,6 +202,7 @@ html,body{width:100%;height:100%;overflow:hidden;position:fixed;background:var(-
 <body>
 
 <div id="sky"></div>
+  
 
 <!-- Detail overlay (tap landmark to open) -->
 <div id="overlay" onclick="closeOverlay(event)">
@@ -219,6 +220,10 @@ html,body{width:100%;height:100%;overflow:hidden;position:fixed;background:var(-
         <button id="oclose" onclick="closeOverlay()">✕</button>
       </div>
       <div id="ofact"></div>
+      <button id="geminiBtn" onclick="askGemini()" style="width:100%; margin-top:10px; padding:10px; background:#8e44ad; color:white; border:none; border-radius:8px; font-family:'DM Mono',monospace; cursor:pointer;">
+  ✨ ELABORATE WITH GEMINI
+</button>
+<div id="geminiText" style="color:white; font-size:13px; margin-top:10px; display:none;"></div>
       <div id="olistenWrap">
         <button id="olistenBtn" onclick="overlayListen()">🔊 Listen</button>
       </div>

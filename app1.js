@@ -424,3 +424,17 @@ if (window.speechSynthesis) {
 }
 
 // ─────────────────────────────────────────────────────────
+async function askGemini() {
+  const name = document.getElementById('oname').innerText;
+  const textBox = document.getElementById('geminiText');
+  const btn = document.getElementById('geminiBtn');
+
+  btn.innerText = "THINKING...";
+  textBox.style.display = "block";
+  textBox.innerText = "Asking the AI...";
+
+  const response = await fetch('/api/gemini', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ landmark: name })
+  });

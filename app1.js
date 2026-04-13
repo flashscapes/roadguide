@@ -264,7 +264,7 @@ function renderCards() {
       +   '</div>'
       +   '<div class="divider"></div>'
       +   '<div class="card-fact">' + lm.fact + '</div>'
-      + '<br><br><a class="yt-link" href="https://www.youtube.com/results?search_query=' + encodeURIComponent(lm.name) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="font-size:12px;">&#9654; Watch on YouTube</a>'
+      + '<br><br><a class="yt-link" href="https://www.youtube.com/results?search_query=' + encodeURIComponent(lm.name) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="font-size:14px;">&#9654; Watch on YouTube</a>'
       + '</div>';
   }
 }

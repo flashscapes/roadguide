@@ -18,7 +18,7 @@ export default async function handler(req, res) {
     },
     body: JSON.stringify({
       model: 'tts-1-hd',
-      voice: 'fable',
+      voice: 'echo',
       input: text
     })
   });

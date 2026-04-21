@@ -7,6 +7,57 @@ var aiHistory  = [];
 var aiLandmark = null;
 var aiRecog    = null;
 
+// ─────────────────────────────────────────────────────────
+// OPENAI TTS VOICE ENGINE
+// ─────────────────────────────────────────────────────────
+var _ttsAudio   = null;
+var _ttsPlaying = false;
+
+function aiSpeak(text, onEnd) {
+  aiSpeakStop();
+
+  _ttsAudio = new Audio();
+
+  fetch(VERCEL_URL + '/api/speak', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text: text })
+  })
+  .then(function(r) {
+    if (!r.ok) throw new Error('TTS failed');
+    return r.blob();
+  })
+  .then(function(blob) {
+    var url = URL.createObjectURL(blob);
+    _ttsAudio.src = url;
+    _ttsPlaying = true;
+    _ttsAudio.onended = function() {
+      _ttsPlaying = false;
+      URL.revokeObjectURL(url);
+      if (onEnd) onEnd();
+    };
+    _ttsAudio.onerror = function() {
+      _ttsPlaying = false;
+      URL.revokeObjectURL(url);
+      browserSpeak(text, null, onEnd);
+    };
+    _ttsAudio.play();
+  })
+  .catch(function() {
+    _ttsPlaying = false;
+    browserSpeak(text, null, onEnd);
+  });
+}
+
+function aiSpeakStop() {
+  if (_ttsAudio) {
+    try { _ttsAudio.pause(); } catch(e) {}
+    _ttsAudio = null;
+  }
+  _ttsPlaying = false;
+  xiStop();
+}
+
 function openAI() {
   if (!overlayLandmark) return;
   aiLandmark = overlayLandmark;
@@ -22,11 +73,11 @@ function openAI() {
   label.textContent = 'LOADING...';
   panel.classList.add('open');
 
-   xiStop();
-  var unlockAudio = new Audio();
-  unlockAudio.play().catch(function(){});
+  aiSpeakStop();
 
-  // Hide mic until first response arrives
+  var unlock = new Audio();
+  unlock.play().catch(function(){});
+
   var mic = document.getElementById('aiMicBtn');
   if (mic) mic.style.display = 'none';
 
@@ -38,7 +89,7 @@ function closeAI() {
   document.getElementById('aiPanel').classList.remove('open');
   document.getElementById('askAiLabel').textContent = 'ASK AI';
   stopMic();
-  xiStop();
+  aiSpeakStop();
   aiHistory  = [];
   aiLandmark = null;
 }
@@ -58,7 +109,6 @@ function callAI(userText, isOpening) {
   var snd   = document.getElementById('aiSend');
   var mic   = document.getElementById('aiMicBtn');
 
-  // Show user message
   if (!isOpening) {
     var userDiv = document.createElement('div');
     userDiv.className   = 'ai-msg user';
@@ -67,7 +117,6 @@ function callAI(userText, isOpening) {
     msgs.scrollTop = msgs.scrollHeight;
   }
 
-  // Loading bubble
   var loadDiv = document.createElement('div');
   loadDiv.className   = 'ai-msg ai loading';
   loadDiv.textContent = '✦ Thinking…';
@@ -95,10 +144,8 @@ function callAI(userText, isOpening) {
   .then(function(data) {
     var text = data.text || 'Sorry, I could not get a response.';
 
-    // Remove loading bubble
     if (msgs.contains(loadDiv)) msgs.removeChild(loadDiv);
 
-    // Add AI response bubble
     var aiDiv = document.createElement('div');
     aiDiv.className   = 'ai-msg ai';
     aiDiv.textContent = text;
@@ -112,8 +159,7 @@ function callAI(userText, isOpening) {
     if (snd) snd.disabled = false;
     if (mic) { mic.disabled = false; mic.style.display = 'flex'; }
 
-    // Speak the response
-    browserSpeak(text, null, null);
+    aiSpeak(text, null);
   })
   .catch(function(e) {
     if (msgs.contains(loadDiv)) msgs.removeChild(loadDiv);
@@ -134,21 +180,20 @@ function callAI(userText, isOpening) {
 function startMic() {
   var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SpeechRecognition) {
-    alert('Voice input not supported in this browser. Try Chrome.');
+    alert('Voice input is not supported in Safari. Please type your question instead.');
     return;
   }
 
   var mic = document.getElementById('aiMicBtn');
   var inp = document.getElementById('aiInput');
 
-  // Stop any current speech so mic doesn't pick it up
-  xiStop();
+  aiSpeakStop();
 
   aiRecog = new SpeechRecognition();
-  aiRecog.lang             = 'en-US';
-  aiRecog.interimResults   = true;
-  aiRecog.maxAlternatives  = 1;
-  aiRecog.continuous       = false;
+  aiRecog.lang            = 'en-US';
+  aiRecog.interimResults  = true;
+  aiRecog.maxAlternatives = 1;
+  aiRecog.continuous      = false;
 
   aiRecog.onstart = function() {
     if (mic) mic.classList.add('listening');
@@ -244,8 +289,8 @@ function topListen() {
   var lbl = document.getElementById('listenLabel');
   var sub = document.getElementById('listenSub');
 
-  if (isSpeaking()) {
-    xiStop();
+  if (_ttsPlaying || isSpeaking()) {
+    aiSpeakStop();
     btn.classList.remove('speaking');
     lbl.textContent = 'LISTEN';
     sub.textContent = 'Tap to hear nearest landmark';
@@ -255,24 +300,19 @@ function topListen() {
   lbl.textContent = 'LOADING...';
   sub.textContent = 'Preparing audio';
   btn.classList.add('speaking');
+  lbl.textContent = 'STOP';
+  sub.textContent = lm.name.toUpperCase().substring(0, 28);
 
   var full      = stripTags(lm.fact);
   var sentences = full.match(/[^.!?]+[.!?]+/g) || [full];
   var short     = sentences.slice(0, 2).join(' ').trim();
   var text      = lm.name + '. ' + short;
 
-  browserSpeak(text,
-    function() {
-      btn.classList.add('speaking');
-      lbl.textContent = 'STOP';
-      sub.textContent = lm.name.toUpperCase().substring(0, 28);
-    },
-    function() {
-      btn.classList.remove('speaking');
-      lbl.textContent = 'LISTEN';
-      sub.textContent = 'Tap to hear nearest landmark';
-    }
-  );
+  aiSpeak(text, function() {
+    btn.classList.remove('speaking');
+    lbl.textContent = 'LISTEN';
+    sub.textContent = 'Tap to hear nearest landmark';
+  });
 }
 
 // ─────────────────────────────────────────────────────────
@@ -287,7 +327,7 @@ function openOverlay(idx) {
   if (!lm) return;
   overlayLandmark = lm;
 
-  xiStop();
+  aiSpeakStop();
   resetTopBtn();
 
   var oImg   = document.getElementById('oImg');
@@ -327,7 +367,7 @@ function openOverlay(idx) {
 function closeOverlay(e) {
   if (e && e.target !== document.getElementById('overlay')) return;
   document.getElementById('overlay').classList.remove('open');
-  xiStop();
+  aiSpeakStop();
   document.getElementById('olistenBtn').textContent = '🔊 Listen';
   document.getElementById('olistenBtn').classList.remove('speaking');
   overlayLandmark = null;
@@ -340,22 +380,25 @@ function overlayListen() {
   if (!overlayLandmark) return;
   var btn = document.getElementById('olistenBtn');
 
-  if (isSpeaking()) {
-    xiStop();
+  if (_ttsPlaying || isSpeaking()) {
+    aiSpeakStop();
     btn.textContent = '🔊 Listen';
     btn.classList.remove('speaking');
     return;
   }
+
+  btn.textContent = '⏹ Stop';
+  btn.classList.add('speaking');
 
   var full      = stripTags(overlayLandmark.fact);
   var sentences = full.match(/[^.!?]+[.!?]+/g) || [full];
   var short     = sentences.slice(0, 2).join(' ').trim();
   var text      = overlayLandmark.name + '. ' + short;
 
-  browserSpeak(text,
-    function() { btn.textContent = '⏹ Stop'; btn.classList.add('speaking'); },
-    function() { btn.textContent = '🔊 Listen'; btn.classList.remove('speaking'); }
-  );
+  aiSpeak(text, function() {
+    btn.textContent = '🔊 Listen';
+    btn.classList.remove('speaking');
+  });
 }
 
 // ─────────────────────────────────────────────────────────

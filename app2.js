@@ -1,3 +1,144 @@
+// ─────────────────────────────────────────────────────────
+// AI CHAT PANEL
+// ─────────────────────────────────────────────────────────
+var aiHistory = [];
+var aiLandmark = null;
+var aiSpeaking = false;
+
+function openAI() {
+  if (!overlayLandmark) return;
+  aiLandmark = overlayLandmark;
+  aiHistory = [];
+
+  var panel = document.getElementById('aiPanel');
+  var msgs  = document.getElementById('aiMessages');
+  var label = document.getElementById('askAiLabel');
+  var name  = document.getElementById('aiPanelName');
+
+  name.textContent = aiLandmark.name.toUpperCase();
+  msgs.innerHTML = '';
+  panel.classList.add('open');
+
+  // Show loading state on button
+  label.textContent = 'LOADING...';
+
+  // Auto-send opening question
+  var opening = 'Tell me the most fascinating thing about ' + aiLandmark.name + '.';
+  callAI(opening, true);
+}
+
+function closeAI() {
+  document.getElementById('aiPanel').classList.remove('open');
+  document.getElementById('askAiLabel').textContent = 'ASK AI';
+  xiStop();
+  aiHistory = [];
+  aiLandmark = null;
+}
+
+function sendAI() {
+  var input = document.getElementById('aiInput');
+  var text  = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  callAI(text, false);
+}
+
+function callAI(userText, isOpening) {
+  var msgs = document.getElementById('aiMessages');
+  var label = document.getElementById('askAiLabel');
+
+  // Add user message to display (skip for auto-opening)
+  if (!isOpening) {
+    var userDiv = document.createElement('div');
+    userDiv.className = 'ai-msg user';
+    userDiv.textContent = userText;
+    msgs.appendChild(userDiv);
+  }
+
+  // Add loading indicator
+  var loadDiv = document.createElement('div');
+  loadDiv.className = 'ai-msg ai loading';
+  loadDiv.textContent = 'Thinking...';
+  msgs.appendChild(loadDiv);
+  msgs.scrollTop = msgs.scrollHeight;
+
+  // Add to history
+  aiHistory.push({ role: 'user', content: userText });
+
+  // Disable input while loading
+  document.getElementById('aiInput').disabled = true;
+  document.getElementById('aiSend').disabled  = true;
+
+  fetch('/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      messages: aiHistory,
+      landmarkName: aiLandmark.name
+    })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    var text = data.text || 'Sorry, I could not get a response.';
+
+    // Remove loading indicator
+    msgs.removeChild(loadDiv);
+
+    // Add AI response
+    var aiDiv = document.createElement('div');
+    aiDiv.className = 'ai-msg ai';
+    aiDiv.textContent = text;
+    msgs.appendChild(aiDiv);
+    msgs.scrollTop = msgs.scrollHeight;
+
+    // Add to history
+    aiHistory.push({ role: 'assistant', content: text });
+
+    // Reset button label
+    label.textContent = 'ASK AI';
+
+    // Re-enable input
+    document.getElementById('aiInput').disabled = false;
+    document.getElementById('aiSend').disabled  = false;
+    document.getElementById('aiInput').focus();
+
+    // Speak the response automatically
+    speakAI(text);
+  })
+  .catch(function() {
+    msgs.removeChild(loadDiv);
+    label.textContent = 'ASK AI';
+    document.getElementById('aiInput').disabled = false;
+    document.getElementById('aiSend').disabled  = false;
+    var errDiv = document.createElement('div');
+    errDiv.className = 'ai-msg ai';
+    errDiv.textContent = 'Connection error. Please try again.';
+    msgs.appendChild(errDiv);
+  });
+}
+
+function speakAI(text) {
+  // Reuse the same OpenAI voice engine
+  var audio = new Audio();
+  audio.play().catch(function(){});
+
+  fetch('/api/speak', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text: text })
+  })
+  .then(function(r) { return r.blob(); })
+  .then(function(blob) {
+    var url = URL.createObjectURL(blob);
+    audio.src = url;
+    audio.onended = function() { URL.revokeObjectURL(url); };
+    audio.load();
+    audio.play();
+  })
+  .catch(function() {
+    browserSpeak(text, null, null);
+  });
+}
 // TOP LISTEN BUTTON — narrates the #1 nearest landmark
 // ─────────────────────────────────────────────────────────
 function topListen() {

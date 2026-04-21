@@ -22,7 +22,9 @@ function openAI() {
   label.textContent = 'LOADING...';
   panel.classList.add('open');
 
-  xiStop();
+   xiStop();
+  var unlockAudio = new Audio();
+  unlockAudio.play().catch(function(){});
 
   // Hide mic until first response arrives
   var mic = document.getElementById('aiMicBtn');

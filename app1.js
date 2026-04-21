@@ -325,7 +325,7 @@ function browserSpeak(text, onStart, onEnd) {
   utt.onerror = function() { _speaking = false; if (onEnd) onEnd(); };
   setTimeout(function() {
     window.speechSynthesis.speak(utt);
-  }, isIOS ? 100 : 0);
+  }, isIOS ? 300 : 0);
 }
  
 function isSpeaking() {

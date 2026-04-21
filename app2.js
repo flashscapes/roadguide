@@ -1,86 +1,5 @@
-
-// ─────────────────────────────────────────────────────────
-// AI CHAT PANEL
-// ─────────────────────────────────────────────────────────
-var aiHistory = [];
-var aiLandmark = null;
-var aiSpeaking = false;
-
-function openAI() {
-  if (!overlayLandmark) return;
-  aiLandmark = overlayLandmark;
-  aiHistory = [];
-
-  var panel = document.getElementById('aiPanel');
-  var msgs  = document.getElementById('aiMessages');
-  var label = document.getElementById('askAiLabel');
-  var name  = document.getElementById('aiPanelName');
-
-  name.textContent = aiLandmark.name.toUpperCase();
-  msgs.innerHTML = '';
-  panel.classList.add('open');
-
-  label.textContent = 'LOADING...';
-
-  var opening = 'Tell me the most fascinating thing about ' + aiLandmark.name + '.';
-  callAI(opening, true);
-}
-
-function closeAI() {
-  document.getElementById('aiPanel').classList.remove('open');
-  document.getElementById('askAiLabel').textContent = 'ASK AI';
-  xiStop();
-  aiHistory = [];
-  aiLandmark = null;
-}
-
-function sendAI() {
-  var input = document.getElementById('aiInput');
-  var text  = input.value.trim();
-  if (!text) return;
-  input.value = '';
-  callAI(text, false);
-}
-
-function callAI(userText, isOpening) {
-  var msgs  = document.getElementById('aiMessages');
-  var label = document.getElementById('askAiLabel');
-
-  if (!isOpening) {
-    var userDiv = document.createElement('div');
-    userDiv.className = 'ai-msg user';
-    userDiv.textContent = userText;
-    msgs.appendChild(userDiv);
-  }
-
-  var loadDiv = document.createElement('div');
-  loadDiv.className = 'ai-msg ai loading';
-  loadDiv.textContent = 'Thinking...';
-  msgs.appendChild(loadDiv);
-  msgs.scrollTop = msgs.scrollHeight;
-
-  aiHistory.push({ role: 'user', content: userText });
-
-  document.getElementById('aiInput').disabled = true;
-  document.getElementById('aiSend').disabled  = true;
-
-  // Open ChatGPT as fallback since no server backend is available
-  msgs.removeChild(loadDiv);
-  label.textContent = 'ASK AI';
-  document.getElementById('aiInput').disabled = false;
-  document.getElementById('aiSend').disabled  = false;
-
-  var errDiv = document.createElement('div');
-  errDiv.className = 'ai-msg ai';
-  errDiv.textContent = 'Tap the ChatGPT button below to ask about this landmark.';
-  msgs.appendChild(errDiv);
-}
-
-function speakAI(text, onDone) {
-  browserSpeak(text, null, onDone);
-}
-
-// ─────────────────────────────────────────────────────────
+Here it is — select all and copy:
+javascript// ─────────────────────────────────────────────────────────
 // TOP LISTEN BUTTON
 // ─────────────────────────────────────────────────────────
 function topListen() {
@@ -207,4 +126,166 @@ function overlayListen() {
   browserSpeak(text, onStart, onEnd);
 }
 
-// ─────────────────────────────
+// ─────────────────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────────────────
+function stripTags(html) {
+  return (html || '').replace(/<[^>]+>/g, '');
+}
+
+function escHtml(str) {
+  return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function setDot(cls) {
+  document.getElementById('dot').className = 'dot ' + cls;
+}
+
+function setMsg(msg) {
+  document.getElementById('stmsg').textContent = msg;
+}
+
+function resetTopBtn() {
+  document.getElementById('listenBtn').classList.remove('speaking');
+  document.getElementById('listenLabel').textContent = 'LISTEN';
+  document.getElementById('listenSub').textContent   = 'Tap to hear nearest landmark';
+}
+
+// ─────────────────────────────────────────────────────────
+// TICKETMASTER NEARBY EVENTS
+// ─────────────────────────────────────────────────────────
+var TM_KEY    = 'DqVsAFXbOTvz3GAscGsYvPW8Wl6dxpI7';
+var tmEvents  = [];
+var tmLoaded  = false;
+var tmLoading = false;
+
+var TM_MONTHS = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+var TM_DAYS   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+function tmDayLabel(dateStr) {
+  var p = dateStr.split('-');
+  var d = new Date(+p[0], +p[1]-1, +p[2]);
+  var now = new Date();
+  var t   = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  var diff = Math.round((d - t) / 86400000);
+  if (diff === 1) return 'TOMORROW  —  ' + TM_MONTHS[d.getMonth()] + ' ' + d.getDate();
+  return TM_DAYS[d.getDay()].toUpperCase() + '  —  ' + TM_MONTHS[d.getMonth()] + ' ' + d.getDate();
+}
+
+function tmFormatHour(timeStr) {
+  if (!timeStr) return null;
+  var p    = timeStr.split(':');
+  var h    = parseInt(p[0], 10);
+  var m    = parseInt(p[1], 10);
+  var ampm = h >= 12 ? 'PM' : 'AM';
+  var h12  = h % 12 || 12;
+  var disp = m > 0 ? h12 + ':' + String(m).padStart(2,'0') : String(h12);
+  return { hour: disp, ampm: ampm };
+}
+
+function setEventsMsg(msg) {
+  var pane = document.getElementById('eventsPane');
+  if (!pane) return;
+  pane.innerHTML = '<div class="ev-msg">' + msg + '</div>';
+}
+
+function loadEvents() {
+  if (tmLoading) return;
+  if (tmLoaded)  { renderTMEvents(); return; }
+  if (!userLat) {
+    setEventsMsg('Waiting for your location…');
+    var t = setInterval(function() {
+      if (userLat) { clearInterval(t); loadEvents(); }
+    }, 1500);
+    return;
+  }
+  tmLoading = true;
+  setEventsMsg('Searching for upcoming events near you…');
+
+  var now   = new Date();
+  var start = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  var end   = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 14);
+
+  function pad(n) { return String(n).padStart(2,'0'); }
+  function tmDate(d) {
+    return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()) + 'T00:00:00Z';
+  }
+
+  var url = 'https://app.ticketmaster.com/discovery/v2/events.json'
+          + '?apikey='        + TM_KEY
+          + '&latlong='       + userLat + ',' + userLon
+          + '&radius=30&unit=miles'
+          + '&startDateTime=' + tmDate(start)
+          + '&endDateTime='   + tmDate(end)
+          + '&size=50&sort=date,asc';
+
+  fetch(url)
+    .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(function(data) {
+      tmLoading = false;
+      tmLoaded  = true;
+      tmEvents  = (data._embedded && data._embedded.events) || [];
+      renderTMEvents();
+    })
+    .catch(function(e) {
+      tmLoading = false;
+      setEventsMsg('Could not load events — ' + e.message);
+    });
+}
+
+function renderTMEvents() {
+  var pane = document.getElementById('eventsPane');
+  if (!pane) return;
+
+  if (!tmEvents.length) {
+    setEventsMsg('No events found within 30 miles in the next 2 weeks.');
+    return;
+  }
+
+  var groups = {}, order = [];
+  tmEvents.forEach(function(ev) {
+    var d = (ev.dates && ev.dates.start && ev.dates.start.localDate) || 'unknown';
+    if (!groups[d]) { groups[d] = []; order.push(d); }
+    groups[d].push(ev);
+  });
+
+  var html = '';
+  order.forEach(function(dateStr) {
+    html += '<div class="day-header">' + tmDayLabel(dateStr) + '</div>';
+    groups[dateStr].forEach(function(ev) {
+      var timeStr   = (ev.dates && ev.dates.start && ev.dates.start.localTime) || '';
+      var tObj      = timeStr ? tmFormatHour(timeStr) : null;
+      var venue     = (ev._embedded && ev._embedded.venues && ev._embedded.venues[0]) || {};
+      var venueName = venue.name || '';
+      var vLat      = venue.location ? parseFloat(venue.location.latitude)  : null;
+      var vLon      = venue.location ? parseFloat(venue.location.longitude) : null;
+      var miles     = (userLat && vLat) ? haversine(userLat, userLon, vLat, vLon).toFixed(1) + ' mi' : '';
+      var seg       = (ev.classifications && ev.classifications[0] && ev.classifications[0].segment) ? ev.classifications[0].segment.name : '';
+      var genre     = (ev.classifications && ev.classifications[0] && ev.classifications[0].genre)   ? ev.classifications[0].genre.name   : '';
+      var cat       = (genre && genre !== 'Undefined') ? genre : seg;
+      var evUrl     = ev.url || '#';
+
+      var timeHTML = tObj
+        ? '<div class="ev-hour">' + tObj.hour + '</div><div class="ev-ampm">' + tObj.ampm + '</div>'
+        : '<div class="ev-tbd">TIME<br>TBA</div>';
+
+      html += '<a class="ev-card" href="' + escHtml(evUrl) + '" target="_blank" rel="noopener">'
+            + '<div class="ev-time-col">' + timeHTML + '</div>'
+            + '<div class="ev-info">'
+            + '<div class="ev-name">'  + escHtml(ev.name)   + '</div>'
+            + '<div class="ev-venue">' + escHtml(venueName) + '</div>'
+            + '<div class="ev-meta">'
+            + (cat   ? '<span class="ev-cat">'  + escHtml(cat) + '</span>' : '')
+            + (miles ? '<span class="ev-dist">' + miles + '</span>' : '')
+            + '</div></div></a>';
+    });
+  });
+
+  pane.innerHTML = html;
+}
+
+// ─────────────────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────────────────
+sortAndRender();
+startGPS();

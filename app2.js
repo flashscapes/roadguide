@@ -1,4 +1,5 @@
-// ─────────────────────────────────────────────────────────
+Here is the complete app2.js. Select all, delete, paste this entire block:
+javascript// ─────────────────────────────────────────────────────────
 // AI CHAT PANEL
 // ─────────────────────────────────────────────────────────
 var aiHistory = [];
@@ -19,10 +20,8 @@ function openAI() {
   msgs.innerHTML = '';
   panel.classList.add('open');
 
-  // Show loading state on button
   label.textContent = 'LOADING...';
 
-  // Auto-send opening question
   var opening = 'Tell me the most fascinating thing about ' + aiLandmark.name + '.';
   callAI(opening, true);
 }
@@ -44,10 +43,9 @@ function sendAI() {
 }
 
 function callAI(userText, isOpening) {
-  var msgs = document.getElementById('aiMessages');
+  var msgs  = document.getElementById('aiMessages');
   var label = document.getElementById('askAiLabel');
 
-  // Add user message to display (skip for auto-opening)
   if (!isOpening) {
     var userDiv = document.createElement('div');
     userDiv.className = 'ai-msg user';
@@ -55,17 +53,14 @@ function callAI(userText, isOpening) {
     msgs.appendChild(userDiv);
   }
 
-  // Add loading indicator
   var loadDiv = document.createElement('div');
   loadDiv.className = 'ai-msg ai loading';
   loadDiv.textContent = 'Thinking...';
   msgs.appendChild(loadDiv);
   msgs.scrollTop = msgs.scrollHeight;
 
-  // Add to history
   aiHistory.push({ role: 'user', content: userText });
 
-  // Disable input while loading
   document.getElementById('aiInput').disabled = true;
   document.getElementById('aiSend').disabled  = true;
 
@@ -81,29 +76,29 @@ function callAI(userText, isOpening) {
   .then(function(data) {
     var text = data.text || 'Sorry, I could not get a response.';
 
-    // Remove loading indicator
     msgs.removeChild(loadDiv);
 
-    // Add AI response
     var aiDiv = document.createElement('div');
     aiDiv.className = 'ai-msg ai';
     aiDiv.textContent = text;
     msgs.appendChild(aiDiv);
     msgs.scrollTop = msgs.scrollHeight;
 
-    // Add to history
     aiHistory.push({ role: 'assistant', content: text });
 
-    // Reset button label
     label.textContent = 'ASK AI';
 
-    // Re-enable input
     document.getElementById('aiInput').disabled = false;
     document.getElementById('aiSend').disabled  = false;
     document.getElementById('aiInput').focus();
 
-    // Speak the response automatically
-    speakAI(text);
+    // Speak response, then follow-up prompt on first reply only
+    var isFirst = aiHistory.length <= 2;
+    speakAI(text, function() {
+      if (isFirst) {
+        speakAI('Feel free to ask me anything else about this place.', null);
+      }
+    });
   })
   .catch(function() {
     msgs.removeChild(loadDiv);
@@ -117,8 +112,7 @@ function callAI(userText, isOpening) {
   });
 }
 
-function speakAI(text) {
-  // Reuse the same OpenAI voice engine
+function speakAI(text, onDone) {
   var audio = new Audio();
   audio.play().catch(function(){});
 
@@ -131,15 +125,20 @@ function speakAI(text) {
   .then(function(blob) {
     var url = URL.createObjectURL(blob);
     audio.src = url;
-    audio.onended = function() { URL.revokeObjectURL(url); };
+    audio.onended = function() {
+      URL.revokeObjectURL(url);
+      if (onDone) onDone();
+    };
     audio.load();
     audio.play();
   })
   .catch(function() {
-    browserSpeak(text, null, null);
+    browserSpeak(text, null, onDone);
   });
 }
-// TOP LISTEN BUTTON — narrates the #1 nearest landmark
+
+// ─────────────────────────────────────────────────────────
+// TOP LISTEN BUTTON
 // ─────────────────────────────────────────────────────────
 function topListen() {
   var lm  = sorted[0];
@@ -155,13 +154,15 @@ function topListen() {
     sub.textContent = 'Tap to hear nearest landmark';
     return;
   }
-    lbl.textContent = 'LOADING...';
+
+  lbl.textContent = 'LOADING...';
   sub.textContent = 'Preparing audio';
   btn.classList.add('speaking');
-var full = stripTags(lm.fact);
-var sentences = full.match(/[^.!?]+[.!?]+/g) || [full];
-var short = sentences.slice(0, 2).join(' ').trim();
-var text = lm.name + '. ' + short;
+
+  var full = stripTags(lm.fact);
+  var sentences = full.match(/[^.!?]+[.!?]+/g) || [full];
+  var short = sentences.slice(0, 2).join(' ').trim();
+  var text = lm.name + '. ' + short;
 
   var onStart = function() {
     btn.classList.add('speaking');
@@ -180,7 +181,7 @@ var text = lm.name + '. ' + short;
 }
 
 // ─────────────────────────────────────────────────────────
-// OVERLAY — opens when a card or list item is tapped
+// OVERLAY
 // ─────────────────────────────────────────────────────────
 function cardClick(i) {
   if (sorted[i]) openOverlay(i);
@@ -248,10 +249,10 @@ function overlayListen() {
     return;
   }
 
-var full = stripTags(overlayLandmark.fact);
-var sentences = full.match(/[^.!?]+[.!?]+/g) || [full];
-var short = sentences.slice(0, 2).join(' ').trim();
-var text = overlayLandmark.name + '. ' + short;
+  var full = stripTags(overlayLandmark.fact);
+  var sentences = full.match(/[^.!?]+[.!?]+/g) || [full];
+  var short = sentences.slice(0, 2).join(' ').trim();
+  var text = overlayLandmark.name + '. ' + short;
 
   var onStart = function() {
     btn.textContent = '⏹ Stop';
@@ -294,8 +295,6 @@ function resetTopBtn() {
 
 // ─────────────────────────────────────────────────────────
 // TICKETMASTER NEARBY EVENTS
-// Shows events starting TOMORROW through the following 3 days
-// Never shows today's events
 // ─────────────────────────────────────────────────────────
 var TM_KEY    = 'DqVsAFXbOTvz3GAscGsYvPW8Wl6dxpI7';
 var tmEvents  = [];
@@ -311,9 +310,8 @@ function tmDayLabel(dateStr) {
   var now = new Date();
   var t   = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   var diff = Math.round((d - t) / 86400000);
-  var label = TM_DAYS[d.getDay()].toUpperCase() + '  —  ' + TM_MONTHS[d.getMonth()] + ' ' + d.getDate();
   if (diff === 1) return 'TOMORROW  —  ' + TM_MONTHS[d.getMonth()] + ' ' + d.getDate();
-  return label;
+  return TM_DAYS[d.getDay()].toUpperCase() + '  —  ' + TM_MONTHS[d.getMonth()] + ' ' + d.getDate();
 }
 
 function tmFormatHour(timeStr) {
@@ -347,11 +345,7 @@ function loadEvents() {
   setEventsMsg('Searching for upcoming events near you…');
 
   var now   = new Date();
-
-  // Start = tomorrow (never today)
   var start = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-
-  // End = 3 days after tomorrow
   var end   = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 4);
 
   function pad(n) { return String(n).padStart(2,'0'); }
@@ -401,23 +395,23 @@ function renderTMEvents() {
   order.forEach(function(dateStr) {
     html += '<div class="day-header">' + tmDayLabel(dateStr) + '</div>';
     groups[dateStr].forEach(function(ev) {
-      var timeStr  = (ev.dates && ev.dates.start && ev.dates.start.localTime) || '';
-      var tObj     = timeStr ? tmFormatHour(timeStr) : null;
-      var venue    = (ev._embedded && ev._embedded.venues && ev._embedded.venues[0]) || {};
+      var timeStr   = (ev.dates && ev.dates.start && ev.dates.start.localTime) || '';
+      var tObj      = timeStr ? tmFormatHour(timeStr) : null;
+      var venue     = (ev._embedded && ev._embedded.venues && ev._embedded.venues[0]) || {};
       var venueName = venue.name || '';
-      var vLat     = venue.location ? parseFloat(venue.location.latitude)  : null;
-      var vLon     = venue.location ? parseFloat(venue.location.longitude) : null;
-      var miles    = (userLat && vLat) ? haversine(userLat, userLon, vLat, vLon).toFixed(1) + ' mi' : '';
-      var seg      = (ev.classifications && ev.classifications[0] && ev.classifications[0].segment) ? ev.classifications[0].segment.name : '';
-      var genre    = (ev.classifications && ev.classifications[0] && ev.classifications[0].genre)   ? ev.classifications[0].genre.name   : '';
-      var cat      = (genre && genre !== 'Undefined') ? genre : seg;
-      var url      = ev.url || '#';
+      var vLat      = venue.location ? parseFloat(venue.location.latitude)  : null;
+      var vLon      = venue.location ? parseFloat(venue.location.longitude) : null;
+      var miles     = (userLat && vLat) ? haversine(userLat, userLon, vLat, vLon).toFixed(1) + ' mi' : '';
+      var seg       = (ev.classifications && ev.classifications[0] && ev.classifications[0].segment) ? ev.classifications[0].segment.name : '';
+      var genre     = (ev.classifications && ev.classifications[0] && ev.classifications[0].genre)   ? ev.classifications[0].genre.name   : '';
+      var cat       = (genre && genre !== 'Undefined') ? genre : seg;
+      var evUrl     = ev.url || '#';
 
       var timeHTML = tObj
         ? '<div class="ev-hour">' + tObj.hour + '</div><div class="ev-ampm">' + tObj.ampm + '</div>'
         : '<div class="ev-tbd">TIME<br>TBA</div>';
 
-      html += '<a class="ev-card" href="' + escHtml(url) + '" target="_blank" rel="noopener">'
+      html += '<a class="ev-card" href="' + escHtml(evUrl) + '" target="_blank" rel="noopener">'
             + '<div class="ev-time-col">' + timeHTML + '</div>'
             + '<div class="ev-info">'
             + '<div class="ev-name">'  + escHtml(ev.name)   + '</div>'
@@ -433,7 +427,7 @@ function renderTMEvents() {
 }
 
 // ─────────────────────────────────────────────────────────
-// EVENTS — self-install CSS, chip, and pane into the page
+// EVENTS INSTALLER
 // ─────────────────────────────────────────────────────────
 (function installEvents() {
   var style = document.createElement('style');

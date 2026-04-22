@@ -2,22 +2,22 @@
 // AI CHAT PANEL
 // ─────────────────────────────────────────────────────────
 var VERCEL_URL = 'https://roadguide-lime.vercel.app';
-
+ 
 var aiHistory  = [];
 var aiLandmark = null;
 var aiRecog    = null;
-
+ 
 // ─────────────────────────────────────────────────────────
 // OPENAI TTS VOICE ENGINE
 // ─────────────────────────────────────────────────────────
 var _ttsAudio   = null;
 var _ttsPlaying = false;
-
+ 
 function aiSpeak(text, onEnd) {
   aiSpeakStop();
-
+ 
   _ttsAudio = new Audio();
-
+ 
   fetch(VERCEL_URL + '/api/speak', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -48,7 +48,7 @@ function aiSpeak(text, onEnd) {
     browserSpeak(text, null, onEnd);
   });
 }
-
+ 
 function aiSpeakStop() {
   if (_ttsAudio) {
     try { _ttsAudio.pause(); } catch(e) {}
@@ -57,34 +57,34 @@ function aiSpeakStop() {
   _ttsPlaying = false;
   xiStop();
 }
-
+ 
 function openAI() {
   if (!overlayLandmark) return;
   aiLandmark = overlayLandmark;
   aiHistory  = [];
-
+ 
   var panel = document.getElementById('aiPanel');
   var msgs  = document.getElementById('aiMessages');
   var label = document.getElementById('askAiLabel');
   var name  = document.getElementById('aiPanelName');
-
+ 
   name.textContent  = aiLandmark.name.toUpperCase();
   msgs.innerHTML    = '';
   label.textContent = 'LOADING...';
   panel.classList.add('open');
-
+ 
   aiSpeakStop();
-
+ 
   var unlock = new Audio();
   unlock.play().catch(function(){});
-
+ 
   var mic = document.getElementById('aiMicBtn');
   if (mic) mic.style.display = 'none';
-
+ 
   var opening = 'Tell me the single most fascinating thing about ' + aiLandmark.name + '. Then ask what I\'d like to know more about.';
   callAI(opening, true);
 }
-
+ 
 function closeAI() {
   document.getElementById('aiPanel').classList.remove('open');
   document.getElementById('askAiLabel').textContent = 'ASK AI';
@@ -93,7 +93,7 @@ function closeAI() {
   aiHistory  = [];
   aiLandmark = null;
 }
-
+ 
 function sendAI() {
   var input = document.getElementById('aiInput');
   var text  = (input.value || '').trim();
@@ -101,14 +101,14 @@ function sendAI() {
   input.value = '';
   callAI(text, false);
 }
-
+ 
 function callAI(userText, isOpening) {
   var msgs  = document.getElementById('aiMessages');
   var label = document.getElementById('askAiLabel');
   var inp   = document.getElementById('aiInput');
   var snd   = document.getElementById('aiSend');
   var mic   = document.getElementById('aiMicBtn');
-
+ 
   if (!isOpening) {
     var userDiv = document.createElement('div');
     userDiv.className   = 'ai-msg user';
@@ -116,19 +116,19 @@ function callAI(userText, isOpening) {
     msgs.appendChild(userDiv);
     msgs.scrollTop = msgs.scrollHeight;
   }
-
+ 
   var loadDiv = document.createElement('div');
   loadDiv.className   = 'ai-msg ai loading';
   loadDiv.textContent = '✦ Thinking…';
   msgs.appendChild(loadDiv);
   msgs.scrollTop = msgs.scrollHeight;
-
+ 
   aiHistory.push({ role: 'user', content: userText });
-
+ 
   if (inp) inp.disabled = true;
   if (snd) snd.disabled = true;
   if (mic) { mic.disabled = true; mic.style.display = 'none'; }
-
+ 
   fetch(VERCEL_URL + '/api/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -143,22 +143,22 @@ function callAI(userText, isOpening) {
   })
   .then(function(data) {
     var text = data.text || 'Sorry, I could not get a response.';
-
+ 
     if (msgs.contains(loadDiv)) msgs.removeChild(loadDiv);
-
+ 
     var aiDiv = document.createElement('div');
     aiDiv.className   = 'ai-msg ai';
     aiDiv.textContent = text;
     msgs.appendChild(aiDiv);
     msgs.scrollTop = msgs.scrollHeight;
-
+ 
     aiHistory.push({ role: 'assistant', content: text });
-
+ 
     label.textContent = 'ASK AI';
     if (inp) inp.disabled = false;
     if (snd) snd.disabled = false;
     if (mic) { mic.disabled = false; mic.style.display = 'flex'; }
-
+ 
     aiSpeak(text, null);
   })
   .catch(function(e) {
@@ -173,27 +173,37 @@ function callAI(userText, isOpening) {
     if (mic) { mic.disabled = false; mic.style.display = 'flex'; }
   });
 }
-
+ 
 // ─────────────────────────────────────────────────────────
 // MIC / SPEECH RECOGNITION
 // ─────────────────────────────────────────────────────────
 function startMic() {
   var unlock = new Audio();
   unlock.play().catch(function(){});
+ 
+  var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    alert('Voice input is not supported in this browser. Please type your question.');
+    return;
+  }
+ 
   if (aiRecog) return;
+ 
   var mic = document.getElementById('aiMicBtn');
+  var inp = document.getElementById('aiInput');
+ 
   aiSpeakStop();
-
+ 
   aiRecog = new SpeechRecognition();
   aiRecog.lang            = 'en-US';
   aiRecog.interimResults  = true;
   aiRecog.maxAlternatives = 1;
   aiRecog.continuous      = false;
-
+ 
   aiRecog.onstart = function() {
     if (mic) mic.classList.add('listening');
   };
-
+ 
   aiRecog.onresult = function(e) {
     var transcript = '';
     for (var i = e.resultIndex; i < e.results.length; i++) {
@@ -201,7 +211,7 @@ function startMic() {
     }
     if (inp) inp.value = transcript;
   };
-
+ 
   aiRecog.onend = function() {
     if (mic) mic.classList.remove('listening');
     aiRecog = null;
@@ -211,15 +221,15 @@ function startMic() {
       callAI(text, false);
     }
   };
-
+ 
   aiRecog.onerror = function() {
     if (mic) mic.classList.remove('listening');
     aiRecog = null;
   };
-
+ 
   aiRecog.start();
 }
-
+ 
 function stopMic() {
   if (aiRecog) {
     try { aiRecog.stop(); } catch(e) {}
@@ -228,7 +238,7 @@ function stopMic() {
   var mic = document.getElementById('aiMicBtn');
   if (mic) mic.classList.remove('listening');
 }
-
+ 
 function toggleMic() {
   if (aiRecog) {
     stopMic();
@@ -236,7 +246,7 @@ function toggleMic() {
     startMic();
   }
 }
-
+ 
 // ─────────────────────────────────────────────────────────
 // INJECT MIC BUTTON + STYLES
 // ─────────────────────────────────────────────────────────
@@ -263,7 +273,7 @@ function toggleMic() {
       '50%{box-shadow:0 0 0 8px rgba(80,200,128,.08),0 0 24px rgba(80,200,128,.5);}' +
     '}';
   document.head.appendChild(style);
-
+ 
   var wrap = document.getElementById('aiInputWrap');
   if (wrap) {
     var micBtn = document.createElement('button');
@@ -273,7 +283,7 @@ function toggleMic() {
     wrap.appendChild(micBtn);
   }
 })();
-
+ 
 // ─────────────────────────────────────────────────────────
 // TOP LISTEN BUTTON
 // ─────────────────────────────────────────────────────────
@@ -283,7 +293,7 @@ function topListen() {
   var btn = document.getElementById('listenBtn');
   var lbl = document.getElementById('listenLabel');
   var sub = document.getElementById('listenSub');
-
+ 
   if (_ttsPlaying || isSpeaking()) {
     aiSpeakStop();
     btn.classList.remove('speaking');
@@ -291,40 +301,40 @@ function topListen() {
     sub.textContent = 'Tap to hear nearest landmark';
     return;
   }
-
+ 
   lbl.textContent = 'LOADING...';
   sub.textContent = 'Preparing audio';
   btn.classList.add('speaking');
   lbl.textContent = 'STOP';
   sub.textContent = lm.name.toUpperCase().substring(0, 28);
-
+ 
   var full      = stripTags(lm.fact);
   var sentences = full.match(/[^.!?]+[.!?]+/g) || [full];
   var short     = sentences.slice(0, 2).join(' ').trim();
   var text      = lm.name + '. ' + short;
-
+ 
   aiSpeak(text, function() {
     btn.classList.remove('speaking');
     lbl.textContent = 'LISTEN';
     sub.textContent = 'Tap to hear nearest landmark';
   });
 }
-
+ 
 // ─────────────────────────────────────────────────────────
 // OVERLAY
 // ─────────────────────────────────────────────────────────
 function cardClick(i) {
   if (sorted[i]) openOverlay(i);
 }
-
+ 
 function openOverlay(idx) {
   var lm = sorted[idx];
   if (!lm) return;
   overlayLandmark = lm;
-
+ 
   aiSpeakStop();
   resetTopBtn();
-
+ 
   var oImg   = document.getElementById('oImg');
   var oEmoji = document.getElementById('oEmoji');
   if (lm.photo) {
@@ -337,10 +347,10 @@ function openOverlay(idx) {
     oEmoji.style.display = 'flex';
     oEmoji.textContent   = lm.emoji;
   }
-
+ 
   document.getElementById('otag').textContent  = (lm.cat || '').toUpperCase();
   document.getElementById('oname').textContent = lm.name;
-
+ 
   var distHTML = (lm.dist != null)
     ? '<b>' + lm.dist.toFixed(1) + ' miles</b> ' + (lm.dir || '') : '';
   document.getElementById('odist').innerHTML = distHTML + (lm.county ? ' · ' + escHtml(lm.county) : '');
@@ -348,17 +358,17 @@ function openOverlay(idx) {
     + '<a class="yt-link" href="https://www.youtube.com/results?search_query='
     + encodeURIComponent(lm.name)
     + '" target="_blank" rel="noopener">&#9654; Watch on YouTube</a>';
-
+ 
   var obtn = document.getElementById('olistenBtn');
   obtn.textContent = '🔊 Listen';
   obtn.classList.remove('speaking');
-
+ 
   var label = document.getElementById('askAiLabel');
   if (label) label.textContent = 'ASK AI';
-
+ 
   document.getElementById('overlay').classList.add('open');
 }
-
+ 
 function closeOverlay(e) {
   if (e && e.target !== document.getElementById('overlay')) return;
   document.getElementById('overlay').classList.remove('open');
@@ -367,60 +377,60 @@ function closeOverlay(e) {
   document.getElementById('olistenBtn').classList.remove('speaking');
   overlayLandmark = null;
 }
-
+ 
 // ─────────────────────────────────────────────────────────
 // OVERLAY LISTEN BUTTON
 // ─────────────────────────────────────────────────────────
 function overlayListen() {
   if (!overlayLandmark) return;
   var btn = document.getElementById('olistenBtn');
-
+ 
   if (_ttsPlaying || isSpeaking()) {
     aiSpeakStop();
     btn.textContent = '🔊 Listen';
     btn.classList.remove('speaking');
     return;
   }
-
+ 
   btn.textContent = '⏹ Stop';
   btn.classList.add('speaking');
-
+ 
   var full      = stripTags(overlayLandmark.fact);
   var sentences = full.match(/[^.!?]+[.!?]+/g) || [full];
   var short     = sentences.slice(0, 2).join(' ').trim();
   var text      = overlayLandmark.name + '. ' + short;
-
+ 
   aiSpeak(text, function() {
     btn.textContent = '🔊 Listen';
     btn.classList.remove('speaking');
   });
 }
-
+ 
 // ─────────────────────────────────────────────────────────
 // HELPERS
 // ─────────────────────────────────────────────────────────
 function stripTags(html) {
   return (html || '').replace(/<[^>]+>/g, '');
 }
-
+ 
 function escHtml(str) {
   return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
-
+ 
 function setDot(cls) {
   document.getElementById('dot').className = 'dot ' + cls;
 }
-
+ 
 function setMsg(msg) {
   document.getElementById('stmsg').textContent = msg;
 }
-
+ 
 function resetTopBtn() {
   document.getElementById('listenBtn').classList.remove('speaking');
   document.getElementById('listenLabel').textContent = 'LISTEN';
   document.getElementById('listenSub').textContent   = 'Tap to hear nearest landmark';
 }
-
+ 
 // ─────────────────────────────────────────────────────────
 // TICKETMASTER NEARBY EVENTS
 // ─────────────────────────────────────────────────────────
@@ -428,10 +438,10 @@ var TM_KEY    = 'DqVsAFXbOTvz3GAscGsYvPW8Wl6dxpI7';
 var tmEvents  = [];
 var tmLoaded  = false;
 var tmLoading = false;
-
+ 
 var TM_MONTHS = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
 var TM_DAYS   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-
+ 
 function tmDayLabel(dateStr) {
   var p    = dateStr.split('-');
   var d    = new Date(+p[0], +p[1]-1, +p[2]);
@@ -441,7 +451,7 @@ function tmDayLabel(dateStr) {
   if (diff === 1) return 'TOMORROW  —  ' + TM_MONTHS[d.getMonth()] + ' ' + d.getDate();
   return TM_DAYS[d.getDay()].toUpperCase() + '  —  ' + TM_MONTHS[d.getMonth()] + ' ' + d.getDate();
 }
-
+ 
 function tmFormatHour(timeStr) {
   if (!timeStr) return null;
   var p    = timeStr.split(':');
@@ -452,13 +462,13 @@ function tmFormatHour(timeStr) {
   var disp = m > 0 ? h12 + ':' + String(m).padStart(2,'0') : String(h12);
   return { hour: disp, ampm: ampm };
 }
-
+ 
 function setEventsMsg(msg) {
   var pane = document.getElementById('eventsPane');
   if (!pane) return;
   pane.innerHTML = '<div class="ev-msg">' + msg + '</div>';
 }
-
+ 
 function loadEvents() {
   if (tmLoading) return;
   if (tmLoaded)  { renderTMEvents(); return; }
@@ -471,16 +481,16 @@ function loadEvents() {
   }
   tmLoading = true;
   setEventsMsg('Searching for upcoming events near you…');
-
+ 
   var now   = new Date();
   var start = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
   var end   = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 14);
-
+ 
   function pad(n) { return String(n).padStart(2,'0'); }
   function tmDate(d) {
     return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()) + 'T00:00:00Z';
   }
-
+ 
   var url = 'https://app.ticketmaster.com/discovery/v2/events.json'
           + '?apikey='        + TM_KEY
           + '&latlong='       + userLat + ',' + userLon
@@ -488,7 +498,7 @@ function loadEvents() {
           + '&startDateTime=' + tmDate(start)
           + '&endDateTime='   + tmDate(end)
           + '&size=50&sort=date,asc';
-
+ 
   fetch(url)
     .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
     .then(function(data) {
@@ -502,23 +512,23 @@ function loadEvents() {
       setEventsMsg('Could not load events — ' + e.message);
     });
 }
-
+ 
 function renderTMEvents() {
   var pane = document.getElementById('eventsPane');
   if (!pane) return;
-
+ 
   if (!tmEvents.length) {
     setEventsMsg('No events found within 30 miles in the next 2 weeks.');
     return;
   }
-
+ 
   var groups = {}, order = [];
   tmEvents.forEach(function(ev) {
     var d = (ev.dates && ev.dates.start && ev.dates.start.localDate) || 'unknown';
     if (!groups[d]) { groups[d] = []; order.push(d); }
     groups[d].push(ev);
   });
-
+ 
   var html = '';
   order.forEach(function(dateStr) {
     html += '<div class="day-header">' + tmDayLabel(dateStr) + '</div>';
@@ -534,11 +544,11 @@ function renderTMEvents() {
       var genre     = (ev.classifications && ev.classifications[0] && ev.classifications[0].genre)   ? ev.classifications[0].genre.name   : '';
       var cat       = (genre && genre !== 'Undefined') ? genre : seg;
       var evUrl     = ev.url || '#';
-
+ 
       var timeHTML = tObj
         ? '<div class="ev-hour">' + tObj.hour + '</div><div class="ev-ampm">' + tObj.ampm + '</div>'
         : '<div class="ev-tbd">TIME<br>TBA</div>';
-
+ 
       html += '<a class="ev-card" href="' + escHtml(evUrl) + '" target="_blank" rel="noopener">'
             + '<div class="ev-time-col">' + timeHTML + '</div>'
             + '<div class="ev-info">'
@@ -550,10 +560,10 @@ function renderTMEvents() {
             + '</div></div></a>';
     });
   });
-
+ 
   pane.innerHTML = html;
 }
-
+ 
 // ─────────────────────────────────────────────────────────
 // INIT
 // ─────────────────────────────────────────────────────────

@@ -655,8 +655,17 @@ function renderRestaurantCards() {
     var dist  = r.dist != null ? r.dist.toFixed(1) : '—';
     var price = restaurantPrice(r.priceLevel);
     var rating = restaurantRating(r);
+    var photoUrl = r.photoRef
+      ? 'https://roadguide-lime.vercel.app/api/photo?ref=' + encodeURIComponent(r.photoRef) + '&maxWidth=400'
+      : '';
+    var imgHTML = photoUrl
+      ? '<img class="card-img" src="' + photoUrl + '" alt="' + escHtml(r.name) + '" '
+        + 'onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">'
+      : '';
+    var emojiStyle = photoUrl ? '' : 'display:flex';
     html += '<div class="card rank-' + (i + 1) + '" onclick="openRestaurant(' + i + ')">'
-          +   '<div class="card-emoji" style="display:flex">🍴</div>'
+          +   imgHTML
+          +   '<div class="card-emoji" style="' + emojiStyle + '">🍴</div>'
           +   '<div class="card-body">'
           +     '<div class="card-top">'
           +       '<div class="card-meta">'
@@ -698,8 +707,17 @@ function renderRestaurantList() {
     var distLabel = r.dist != null ? r.dist.toFixed(1) : '—';
     var dirStr = r.dir || '';
     var rating = restaurantRating(r);
+    var photoUrl = r.photoRef
+      ? 'https://roadguide-lime.vercel.app/api/photo?ref=' + encodeURIComponent(r.photoRef) + '&maxWidth=400'
+      : '';
+    var imgHTML = photoUrl
+      ? '<img class="card-img" src="' + photoUrl + '" alt="' + escHtml(r.name) + '" '
+        + 'onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">'
+      : '';
+    var emojiStyle = photoUrl ? '' : 'display:flex';
     html += '<div class="card card-mid" onclick="openRestaurant(' + idx + ')">'
-          +   '<div class="card-emoji" style="display:flex">🍴</div>'
+          +   imgHTML
+          +   '<div class="card-emoji" style="' + emojiStyle + '">🍴</div>'
           +   '<div class="card-body">'
           +     '<div class="card-top">'
           +       '<div class="card-meta">'

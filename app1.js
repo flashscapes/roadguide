@@ -374,12 +374,12 @@ function loadRestaurants() {
 
   setMsg('Searching for nearby restaurants…');
 
-  var url =
-    '/api/restaurants?lat=' +
-    encodeURIComponent(userLat) +
-    '&lng=' +
-    encodeURIComponent(userLon) +
-    '&radius=5000';
+var url =
+  'https://roadguide-lime.vercel.app/api/restaurants?lat=' +
+  encodeURIComponent(userLat) +
+  '&lng=' +
+  encodeURIComponent(userLon) +
+  '&radius=5000';
 
   fetch(url)
     .then(function(response) {

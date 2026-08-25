@@ -1126,6 +1126,7 @@ function openGemini() {
 var DEV_TEST_LOCATIONS = [
   { label: 'Current GPS Location', lat: null,     lon: null },
   { label: 'Honolulu, Hawaii',     lat: 21.3069,  lon: -157.8583 },
+  { label: 'Kauai, Hawaii',        lat: 21.9811,  lon: -159.3711 },
   { label: 'Vancouver, Canada',    lat: 49.2827,  lon: -123.1207 },
   { label: 'Mexico City, Mexico',  lat: 19.4326,  lon: -99.1332 },
   { label: 'Tokyo, Japan',         lat: 35.6762,  lon: 139.6503 },

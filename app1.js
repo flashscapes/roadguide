@@ -568,14 +568,25 @@ function restaurantHoursBullet(r) {
   return 'Hours unknown';
 }
 
+// Human-readable site name (e.g. "chezpanisse.com") instead of a
+// generic "Website & menu" label.
+function restaurantSiteLabel(uri) {
+  try {
+    var host = new URL(uri).hostname.replace(/^www\./, '');
+    return host;
+  } catch (e) {
+    return uri;
+  }
+}
+
 // Returns raw HTML (a link), not plain text — handled separately in
 // restaurantSnapshotHTML so it isn't escHtml-escaped like the others.
 function restaurantLinkBullet(r) {
   if (r.websiteUri) {
-    return '<a href="' + escHtml(r.websiteUri) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()">Website &amp; menu</a>';
+    return '<a href="' + escHtml(r.websiteUri) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()">' + escHtml(restaurantSiteLabel(r.websiteUri)) + '</a>';
   }
   if (r.googleMapsUri) {
-    return '<a href="' + escHtml(r.googleMapsUri) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()">Reservations via Google Maps</a>';
+    return '<a href="' + escHtml(r.googleMapsUri) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()">View on Google Maps</a>';
   }
   return 'No website listed';
 }
@@ -597,19 +608,48 @@ function restaurantRatingBullet(r) {
   return parts.length ? parts.join(' · ') : 'No rating available';
 }
 
-// Fixed 5-bullet order: cuisine, hours, website/menu link,
-// outdoor seating, rating+reviews+price.
+// Raw HTML — a red driving-directions link, always the final row.
+function restaurantDirectionsBullet(r) {
+  var lat = (r.latitude  != null) ? Number(r.latitude)  : NaN;
+  var lon = (r.longitude != null) ? Number(r.longitude) : NaN;
+  var url;
+  if (Number.isFinite(lat) && Number.isFinite(lon)) {
+    url = 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(lat + ',' + lon)
+        + (r.id ? '&destination_place_id=' + encodeURIComponent(r.id) : '');
+  } else if (r.address) {
+    url = 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(r.address);
+  } else {
+    return '<span>Directions unavailable</span>';
+  }
+  return '<a href="' + escHtml(url) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()">Google Directions</a>';
+}
+
+// Compact "at-a-glance" info panel — icon + value rows with color
+// and weight doing the hierarchy work, not a generic bulleted list.
+// Fixed order: cuisine, hours, website, outdoor seating, rating,
+// directions (always last, styled in red).
 function restaurantSnapshotHTML(r) {
-  var items = [
-    escHtml(restaurantCuisineBullet(r)),
-    escHtml(restaurantHoursBullet(r)),
-    restaurantLinkBullet(r),
-    escHtml(restaurantOutdoorBullet(r)),
-    escHtml(restaurantRatingBullet(r))
+  var isOpen   = r.openNow === true;
+  var isClosed = r.openNow === false;
+  var hoursClass = isOpen ? 'open' : (isClosed ? 'closed' : '');
+
+  var rows = [
+    { cls: 'cuisine',            ico: '🍽️', val: escHtml(restaurantCuisineBullet(r)) },
+    { cls: hoursClass,           ico: '🕐', val: escHtml(restaurantHoursBullet(r)) },
+    { cls: '',                   ico: '🔗', val: restaurantLinkBullet(r) },
+    { cls: '',                   ico: '🌳', val: escHtml(restaurantOutdoorBullet(r)) },
+    { cls: 'rating',             ico: '★',  val: escHtml(restaurantRatingBullet(r)) },
+    { cls: 'directions',         ico: '📍', val: restaurantDirectionsBullet(r) }
   ];
-  return '<ul class="rest-snapshot" style="margin:0 0 8px 0;padding-left:18px;font-size:12px;color:rgba(220,228,255,.82);line-height:1.65;list-style:disc">'
-       + items.map(function(t) { return '<li>' + t + '</li>'; }).join('')
-       + '</ul>';
+
+  return '<div class="rest-panel">'
+       + rows.map(function(row) {
+           return '<div class="rest-row' + (row.cls ? ' ' + row.cls : '') + '">'
+                +   '<span class="rest-ico">' + row.ico + '</span>'
+                +   '<span class="rest-val">' + row.val + '</span>'
+                + '</div>';
+         }).join('')
+       + '</div>';
 }
 
 // ─────────────────────────────────────────────────────────
@@ -634,8 +674,8 @@ function renderRestaurants() {
   }
 
   var restaurants = restaurantResults.map(function(r) {
-    var lat = Number(r.latitude);
-    var lon = Number(r.longitude);
+    var lat = (r.latitude  != null) ? Number(r.latitude)  : NaN;
+    var lon = (r.longitude != null) ? Number(r.longitude) : NaN;
     var dist = (userLat !== null && Number.isFinite(lat) && Number.isFinite(lon)) ? haversine(userLat, userLon, lat, lon) : null;
     var dir  = (userLat !== null && Number.isFinite(lat) && Number.isFinite(lon)) ? bearing(userLat, userLon, lat, lon) : '';
     return Object.assign({}, r, { dist: dist, dir: dir });

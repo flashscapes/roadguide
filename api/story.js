@@ -1,6 +1,5 @@
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', 'https://flashscapes.github.io');
-
+  res.setHeader('Access-Control-Allow-Origin', 'https://flashscapes.github.io')
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
   }
